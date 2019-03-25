@@ -1,0 +1,1 @@
+These SPARQL queries that enable to transform the data of BIM models in the IFC format (STEP) to the SimModel specification in RDF format.
