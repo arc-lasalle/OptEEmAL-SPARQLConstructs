@@ -1,0 +1,61 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX list: <https://w3id.org/list#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+
+# last modification: 2017.09.05
+
+CONSTRUCT
+{
+	?SimModel_ID1 
+		rdf:type 							simmodel:SimModel ;
+		#simmodel:simIrregularTimeSeries	?IfcIrregularTimeSeries ; 				# <-- this property not exist in the SimModel ontology, but TUC have it on its version of SimModel models (GC)
+		.
+	?IfcIrregularTimeSeries	
+		rdf:type 							simres:SimIrregularTimeSeries ; 		# simres:SimIrregularTimeSeries_Irregular_Default ; (GC)
+		simres:name                    		?name ;
+		simcore:sourceModelObjectType 		"IfcIrregularTimeSeries"^^xsd:string ;	
+		simcore:sourceModelSchema 			"IFC4"^^xsd:string ;
+		simcore:isTemplateObject 			"false"^^xsd:boolean ;
+		simres:startTime 					?startTime_IfcTimeSeries ;
+		simres:endTime 						?endTime_IfcTimeSeries ;
+		simres:timeSeriesDataType 			?datatype;
+		simres:dataOrigin 					?origin;
+		simres:values 						?IfcIrregularTimeSeriesValue_List_X ;
+		simcore:refId 						?SimIrregularTimeSeries_RefId ;
+		simcore:simUniqueID 				"not defined" ;
+		.
+}
+WHERE 
+{
+	?IfcIrregularTimeSeries 
+		rdf:type 								ifc:IfcIrregularTimeSeries ;
+		ifc:values_IfcIrregularTimeSeries  		?IfcIrregularTimeSeriesValue_List_X ;
+		ifc:name_IfcTimeSeries       			[ express:hasString ?name ] ;
+		ifc:startTime_IfcTimeSeries 			[ express:hasString ?startTime_IfcTimeSeries ] ;
+		ifc:endTime_IfcTimeSeries 				[ express:hasString ?endTime_IfcTimeSeries ] ;
+		ifc:timeSeriesDataType_IfcTimeSeries 	?datatype_tmp;
+		ifc:dataOrigin_IfcTimeSeries 			?origin_tmp ;
+		.
+	
+	BIND ( strafter( xsd:string(?datatype_tmp), "#" ) as ?datatype ) . 
+	BIND ( strafter( xsd:string(?origin_tmp), "#" ) as ?origin ) .
+	
+	# SimIrregularTimeSeries RefID:
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcIrregularTimeSeries), "IfcIrregularTimeSeries_" )))) as ?SimIrregularTimeSeries_RefId ) . 
+	
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcIrregularTimeSeries), "IfcIrregularTimeSeries_" ), "SimModel_ID1")) as ?SimModel_ID1 )
+}
+
+
+
+

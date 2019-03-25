@@ -1,0 +1,81 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+
+# last motifcation 2017.07.03
+
+# Classes:
+# 	SimWindow_Window
+#		SimWindow_Window_Default  <------------
+#		SimWindow_Window_Exterior
+#		SimWindow_Window_ExteriorDetailed
+#		SimWindow_Window_Interior
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1
+		rdf:type 							simmodel:SimModel ;
+		simmodel:simWindow_Window_Default 	?IfcWindow ;
+		.		
+	# PART 2 SimWindow Exterior Instance ----------------------	
+	?IfcWindow 
+		rdf:type 							simbldg:SimWindow_Window_Default ;
+		simbldg:materialList 				?IfcMaterialConstituentSet ; 
+		simcore:containingSpatialStructure 	?simBuildingStorey ;
+		simcore:ifcGlobalID 				?IfcGloballyUniqueIdValue ;
+		simcore:isTemplateObject 			"false"^^xsd:boolean ;
+		simbldg:name 						?simModelName ;		
+		simcore:objectType 					"Window"^^xsd:string ;
+		simcore:refId 						?simWindowRefId ;
+		simcore:simModelSubtype 			"Default"^^xsd:string ;
+		simcore:simModelType 				"Window"^^xsd:string ;
+		simcore:simUniqueID 				"not defined" ;
+		simcore:sourceModelObjectType 		"IfcWindow"^^xsd:string ;
+		simcore:sourceModelSchema 			"IFC4"^^xsd:string ;
+		simcore:tag 						"not defined" ;
+		.		 
+}
+WHERE 
+{
+	# PART 1 General information --------------------------------------------
+	?IfcWindow 
+		rdf:type 				ifc:IfcWindow ;
+		ifc:globalId_IfcRoot 	[ express:hasString ?IfcGloballyUniqueIdValue ] ;
+		ifc:name_IfcRoot 		[ express:hasString ?simModelName ] 
+		.
+
+	OPTIONAL {
+		?simBuildingStorey 
+			rdf:type ifc:IfcBuildingStorey ;
+			.
+		?IfcRelContainedInSpatialStructure 
+			rdf:type 												ifc:IfcRelContainedInSpatialStructure ;
+			ifc:relatingStructure_IfcRelContainedInSpatialStructure ?simBuildingStorey ;
+			ifc:relatedElements_IfcRelContainedInSpatialStructure 	?IfcWindow ;
+			.
+	}
+
+	# Connection to material Layer set:
+	?IfcRelAssociatesMaterial 
+		rdf:type  										ifc:IfcRelAssociatesMaterial ;
+		ifc:relatedObjects_IfcRelAssociates 			?IfcWindow ;
+		ifc:relatingMaterial_IfcRelAssociatesMaterial 	?IfcMaterialConstituentSet ;
+		.
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcWindow), "IfcWindow_" )))) as ?simWindowRefId ) . 
+	
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcWindow), "IfcWindow_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .
+}
+
+
+
+

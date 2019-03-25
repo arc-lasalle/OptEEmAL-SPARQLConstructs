@@ -1,0 +1,207 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+
+# last modification: 2019.01.30
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1
+		rdf:type 							simmodel:SimModel ;
+		simmodel:simSpace_Occupied_Default 	?IfcSpace ;
+		.
+	# PART 2 SimSpace_Occupied_Default Instance --------------------------------------------	
+	?IfcSpace 
+		rdf:type 							simbldg:SimSpace_Occupied_Default ;
+		simbldg:equipmentScheduleAssignment ?ifcIrregularTimeSeriesEqp ; 		
+		simbldg:lightingScheduleAssignment 	?ifcIrregularTimeSeriesLig ;		
+		simbldg:naturalAirChangeRate 		?naturalAirChangeRateValue ;
+		simbldg:occupancyScheduleAssignment ?ifcIrregularTimeSeriesOcc ;		
+		simbldg:spaceEquipmentLoad 			?power ;							
+		simbldg:spaceInSpatialContainer 	?IfcBuildingStorey ;
+		simbldg:spaceInteriorOrExterior 	?internal ;
+		simbldg:spaceLightingLoad 			?Lighting ;							
+		simbldg:spaceOccupantLoad 			?occupant ;					
+		simbldg:spaceOccupantDensity 		?area ;	
+		simbldg:spaceZoneAssignments	 	?IfcRelAggregates2 ;		# Zones are included and assigned in the enrichment process (<-- ONLY SimSpatialZone, NOT SimZones)
+		simcore:compositionType        		?ElementType2 ;
+		simcore:ifcGlobalID 				?IfcGloballyUniqueIdValue ;
+		simcore:isTemplateObject 			"false"^^xsd:boolean ;
+		simcore:placement 					?placement ;
+		simcore:refId 						?simSpaceRefId ;			
+		simcore:simModelSubtype 			"Default"^^xsd:string ;
+		simcore:simModelType 				"Occupied"^^xsd:string ;
+		simcore:simUniqueID 				"not defined" ;
+		simcore:sourceModelObjectType 		"IfcSpace"^^xsd:string ;
+		simcore:sourceModelSchema 			"IFC4"^^xsd:string ;
+		.	
+		
+# Temporary !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!		
+		
+	?IfcRelAggregates2
+        a                 					simbldg:SpaceZoneAssignments_List ;
+        list:hasContents  					?IfcZone ;
+		.
+}
+WHERE 
+{
+	# PART 1 General information --------------------------------------------
+	?IfcSpace 
+		rdf:type 										ifc:IfcSpace ;
+		ifc:name_IfcRoot 								[ express:hasString ?name_IfcRoot ] ;
+		ifc:globalId_IfcRoot 							[ express:hasString ?IfcGloballyUniqueIdValue ] ; 
+		ifc:objectPlacement_IfcProduct 					?placement ;
+		ifc:compositionType_IfcSpatialStructureElement 	?ElementType ;
+		.
+
+	?IfcRelAggregates 
+		ifc:relatingObject_IfcRelAggregates ?IfcBuildingStorey ;
+		ifc:relatedObjects_IfcRelAggregates ?IfcSpace .			
+	?IfcBuildingStorey rdf:type ifc:IfcBuildingStorey .
+		
+	?IfcRelAggregates2
+        ifc:relatedObjects_IfcRelAssigns  		?IfcSpace ;
+        ifc:relatingGroup_IfcRelAssignsToGroup  ?IfcZone ;
+		.
+	?IfcZone rdf:type ifc:IfcZone .
+	
+	# to identify the power	---------------------------------------------------
+	?IfcRelDefinesByProperties 
+		ifc:relatedObjects_IfcRelDefinesByProperties  ?IfcSpace ;
+        ifc:relatingPropertyDefinition_IfcRelDefinesByProperties  [ifc:hasProperties_IfcPropertySet ?PSetValue ] ;
+		.
+	?PSetValue 	
+		ifc:nominalValue_IfcPropertySingleValue [ express:hasDouble  ?power ] ;
+		ifc:name_IfcProperty [ express:hasString  "Specified Power Load per area" ] ;
+		.
+	# -------------------------------------------------------------------------
+	
+	# to identify the power	---------------------------------------------------
+	?IfcRelDefinesByProperties2 
+		ifc:relatedObjects_IfcRelDefinesByProperties  ?IfcSpace ;
+        ifc:relatingPropertyDefinition_IfcRelDefinesByProperties  [ifc:hasProperties_IfcPropertySet ?PSetValue2 ] ;
+		.
+	?PSetValue2 	
+		ifc:nominalValue_IfcPropertySingleValue [ express:hasDouble  ?Lighting ] ;
+		ifc:name_IfcProperty  [express:hasString  "Specified Lighting Load per area" ] ;
+		.
+	# -------------------------------------------------------------------------
+	
+	# to identify HeatGainPerOccupant -----------------------------------------	
+	?IfcRelDefinesByProperties3 
+		ifc:relatedObjects_IfcRelDefinesByProperties  ?IfcSpace ;
+        ifc:relatingPropertyDefinition_IfcRelDefinesByProperties [ifc:hasProperties_IfcPropertySet ?PSetValue3 ] ;
+		.
+	?PSetValue3
+		ifc:nominalValue_IfcPropertySingleValue [ express:hasDouble  ?occupant ] ;
+		ifc:name_IfcProperty  [express:hasString  "HeatGainPerOccupant" ] ;
+		.
+	# -------------------------------------------------------------------------
+
+	#### to identify the Space Internal or External	
+	?IfcRelDefinesByProperties5 
+		ifc:relatedObjects_IfcRelDefinesByProperties  ?IfcSpace ;
+        ifc:relatingPropertyDefinition_IfcRelDefinesByProperties  [ifc:hasProperties_IfcPropertySet ?PSetValue5 ] ;
+		.
+	?PSetValue5
+		ifc:nominalValue_IfcPropertySingleValue [ express:hasBoolean  ?internalB ] ;
+		ifc:name_IfcProperty  [express:hasString  "IsExternal" ] ;
+		.
+	BIND(IF(?internalB, "EXTERNAL"^^xsd:string, "INTERNAL"^^xsd:string ) AS ?internal).
+	# -------------------------------------------------------------------------
+	
+	#### naturalAirChangeRateValue
+	
+	?IfcRelDefinesByProperties9
+        ifc:relatedObjects_IfcRelDefinesByProperties  ?IfcSpace ;
+        ifc:relatingPropertyDefinition_IfcRelDefinesByProperties  [ifc:hasProperties_IfcPropertySet ?PSetValue9 ] ;
+		.
+	?PSetValue9 
+		ifc:nominalValue_IfcPropertySingleValue [ express:hasDouble  ?naturalAirChangeRateValue ] ;
+		ifc:name_IfcProperty  					[ express:hasString  "InfiltrationRate" ] ;
+		.
+	
+	# -------------------------------------------------------------------------
+	
+	# to identify the OccupancySchedule	---------------------------------------
+	?IfcRelDefinesByProperties6
+        ifc:relatedObjects_IfcRelDefinesByProperties  ?IfcSpace ;
+        ifc:relatingPropertyDefinition_IfcRelDefinesByProperties  [ifc:hasProperties_IfcPropertySet [ ifc:propertyReference_IfcPropertyReferenceValue ?ifcIrregularTimeSeriesOcc ] ] ;
+		.
+	?ifcIrregularTimeSeriesOcc 
+		rdf:type ifc:IfcIrregularTimeSeries ;
+		ifc:name_IfcTimeSeries [express:hasString  "OccupancySchedule"] ;
+		.		
+	# -------------------------------------------------------------------------
+
+	# to identify the EquipmentSchedule	---------------------------------------
+	?IfcRelDefinesByProperties7
+        ifc:relatedObjects_IfcRelDefinesByProperties  ?IfcSpace ;
+        ifc:relatingPropertyDefinition_IfcRelDefinesByProperties  [ifc:hasProperties_IfcPropertySet [ ifc:propertyReference_IfcPropertyReferenceValue ?ifcIrregularTimeSeriesEqp ] ] ;
+		.
+	?ifcIrregularTimeSeriesEqp 
+		rdf:type ifc:IfcIrregularTimeSeries ;
+		ifc:name_IfcTimeSeries [express:hasString  "EquipmentSchedule"] ;
+		.		
+	# -------------------------------------------------------------------------
+	
+	# to identify the LightingSchedule ----------------------------------------
+	?IfcRelDefinesByProperties8
+        ifc:relatedObjects_IfcRelDefinesByProperties  ?IfcSpace ;
+        ifc:relatingPropertyDefinition_IfcRelDefinesByProperties  [ifc:hasProperties_IfcPropertySet [ ifc:propertyReference_IfcPropertyReferenceValue ?ifcIrregularTimeSeriesLig ] ] ;
+		.	
+	?ifcIrregularTimeSeriesLig 
+		rdf:type ifc:IfcIrregularTimeSeries ;
+		ifc:name_IfcTimeSeries [express:hasString  "LightingSchedule"];
+		.		
+	# -------------------------------------------------------------------------
+	
+	# to identify the AreaPerOccupant -----------------------------------------
+	?IfcRelDefinesByProperties4 
+		ifc:relatedObjects_IfcRelDefinesByProperties  ?IfcSpace ;
+        ifc:relatingPropertyDefinition_IfcRelDefinesByProperties  [ifc:hasProperties_IfcPropertySet ?PSetValue4 ] ;
+		.
+	?PSetValue4
+		ifc:nominalValue_IfcPropertySingleValue [ express:hasDouble  ?area ] ;
+		ifc:name_IfcProperty  					[ express:hasString  "AreaPerOccupant" ] ;
+		.
+	# -------------------------------------------------------------------------
+	
+	# -------------------------------------------------------------------------
+
+	# to identify the Occupiable Spaces	---------------------------------------
+	?IfcRelDefinesByProperties9
+        ifc:relatedObjects_IfcRelDefinesByProperties  ?IfcSpace ;
+        ifc:relatingPropertyDefinition_IfcRelDefinesByProperties  [ ifc:hasProperties_IfcPropertySet ?PSetValue6 ] ;
+		.
+		
+	?PSetValue6
+		ifc:nominalValue_IfcPropertySingleValue [ express:hasInteger  1 ];
+		ifc:name_IfcProperty  					[ express:hasString  "Occupiable" ] ;
+		.		
+	# -------------------------------------------------------------------------
+		
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcSpace), "IfcSpace_" )))) as ?simSpaceRefId ) . 
+	
+	bind( STRAFTER( xsd:string(?ElementType), "#" ) as ?ElementType2 )
+	
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcSpace), "IfcSpace_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .
+}
+
+
+
+
+
+
+
+

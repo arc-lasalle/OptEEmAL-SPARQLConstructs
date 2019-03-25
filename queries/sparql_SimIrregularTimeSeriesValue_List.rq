@@ -1,0 +1,63 @@
+# IMPORTANT: use "ifc" always as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX list: <https://w3id.org/list#>
+PREFIX express: <https://w3id.org/express#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+# Description
+# Transform an "IfcIrregularTimeSeriesValue_List" and "IfcIrregularTimeSeriesValue" into "Values_List" and "SimIrregularTimeSeriesValue"
+
+# Relation with other queries:
+# - 
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1 
+		rdf:type 													simmodel:SimModel ;
+		simmodel:simIrregularTimeSeriesValue_TimeSeries_Irregular 	?SimIrregularTimeSeriesValue ;
+		.
+	?IfcIrregularTimeSeriesValue_List 
+		rdf:type 			simres:Values_List;
+		list:hasContents 	?IfcIrregularTimeSeriesValue ;
+		list:hasNext 		?IfcIrregularTimeSeriesValue_List_Next ;
+		.
+	?IfcIrregularTimeSeriesValue 
+		rdf:type 						simres:SimIrregularTimeSeriesValue ;
+		simcore:sourceModelObjectType 	"IfcIrregularTimeSeriesValue"^^xsd:string ;	
+		simcore:sourceModelSchema 		"IFC4"^^xsd:string ;
+		simcore:isTemplateObject 		"false"^^xsd:boolean ;
+        simcore:simUniqueID 			"not defined" ;
+		simres:timeStamp 				?TimeStamp ;
+		simres:timeStampValue 			?TimeStampValue ;
+		simcore:refId 					?SimIrregularTimeSeriesValue_RefId ;
+		.		
+}
+WHERE
+{
+	?IfcIrregularTimeSeriesValue_List 
+		rdf:type  			ifc:IfcIrregularTimeSeriesValue_List ;
+		list:hasContents 	?IfcIrregularTimeSeriesValue ;
+		.
+	OPTIONAL {
+		?IfcIrregularTimeSeriesValue_List list:hasNext ?IfcIrregularTimeSeriesValue_List_Next .
+	}
+	
+	?IfcIrregularTimeSeriesValue 
+		rdf:type 									ifc:IfcIrregularTimeSeriesValue ;
+		ifc:listValues_IfcIrregularTimeSeriesValue 	[ list:hasContents  [express:hasDouble  ?TimeStampValue ] ] ;
+		ifc:timeStamp_IfcIrregularTimeSeriesValue 	[ express:hasString  ?TimeStamp ] ;
+		.		
+	# SimIrregularTimeSeriesValue RefID:
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcIrregularTimeSeriesValue), "IfcIrregularTimeSeriesValue_" )))) as ?SimIrregularTimeSeriesValue_RefId ) . 
+	
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcIrregularTimeSeries), "IfcIrregularTimeSeries_" ), "SimModel_ID1")) as ?SimModel_ID1 )
+}

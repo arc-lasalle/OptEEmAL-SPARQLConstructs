@@ -1,0 +1,134 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1 
+		rdf:type 										simmodel:SimModel ;
+		simmodel:simSpaceBoundary_SecondLevel_SubTypeA 	?IfcRelSpaceBoundary2ndLevel ;
+		simmodel:simGeomVector_Vector_Direction 		?IfcDirection ;
+		.	
+	?IfcRelSpaceBoundary2ndLevel 
+		rdf:type 							simres:SimSpaceBoundary_SecondLevel_SubTypeA ;
+		simres:connectionGeometry 			?IfcCurveBoundedPlane ;
+		simres:internalOrExternalBoundary 	?internalOrExternalBoundary ;
+		simres:physicalOrVirtualBoundary 	?physicalOrVirtualBoundary ;
+		simres:relatedBuildingElement 		?relElement ;
+		simres:relatingSpace 				?relspace ;
+		simres:surfaceNormal				?IfcDirection ;
+		simcore:ifcGlobalID 				?IfcGloballyUniqueIdValue ;
+		simcore:isTemplateObject 			"false"^^xsd:boolean ;
+		simcore:refId 						?simRefId ;
+		simcore:simModelSubtype 			"SubTypeA"^^xsd:string ;
+		simcore:simModelType 				"SecondLevel"^^xsd:string ;
+		simcore:simUniqueID 				"not defined"^^xsd:string ;
+		simcore:sourceModelObjectType 		"IfcRelSpaceBoundary2ndLevel"^^xsd:string ;	
+		simcore:sourceModelSchema 			"IFC4"^^xsd:string ;
+		simres:parentSpaceBoundary 			?parent ;											#2018.6 < this relation is not defined in the TUC file (at least in one instance)
+		simres:othersideSpaceBoundary 		?otherSpace ;					
+		.
+	?IfcDirection
+		rdf:type 						simgeom:SimGeomVector_Vector_Direction ;
+		simgeom:directionRatios 		?IfcReal_List ;
+		simcore:simModelType 			"Vector"^^xsd:string ;
+		simcore:simModelSubtype 		"Direction"^^xsd:string ;
+		simcore:sourceModelSchema 		"IFC4"^^xsd:string ;
+		simcore:sourceModelObjectType 	"SimGeomVector"^^xsd:string ;
+		simcore:isTemplateObject 		"false"^^xsd:boolean ;
+		simcore:refId 					?simAxisRefId ;
+		simcore:simUniqueID 			"not defined" ;
+		.	
+		
+	# ------------------------------------------------------------------------ << NEW 2
+	?IfcRealNode_List_Next 
+		rdf:type 			simcore:DoubleList ;
+		list:hasContents 	?IfcRealValue ;
+		list:hasNext 		?IfcRealNode_List_Last ;
+		.
+	# ------------------------------------------------------------------------ << NEW	
+}
+WHERE 
+{
+	# PART 2 RelSpaceBoundaries2ndLevel -------------------------------------
+
+	?IfcRelSpaceBoundary2ndLevel 
+		rdf:type 											ifc:IfcRelSpaceBoundary2ndLevel ;
+		ifc:globalId_IfcRoot 								[ express:hasString ?IfcGloballyUniqueIdValue ] ;
+		ifc:description_IfcRoot 							[ express:hasString ?description ] ;
+		ifc:relatingSpace_IfcRelSpaceBoundary 				?relspace ;
+		ifc:physicalOrVirtualBoundary_IfcRelSpaceBoundary 	?physicalOrVirtualBoundary_temp ;
+		ifc:internalOrExternalBoundary_IfcRelSpaceBoundary 	?internalOrExternalBoundary_temp ;
+		ifc:connectionGeometry_IfcRelSpaceBoundary 			[ifc:surfaceOnRelatingElement_IfcConnectionSurfaceGeometry ?IfcCurveBoundedPlane] ;
+		.
+	?IfcCurveBoundedPlane
+		ifc:basisSurface_IfcCurveBoundedPlane ?IfcPlane ;
+		.
+	?IfcPlane
+		ifc:position_IfcElementarySurface ?IfcAxis2Placement3D ;
+		.
+	?IfcAxis2Placement3D
+		ifc:refDirection_IfcAxis2Placement3D ?IfcDirection ;
+		.
+	?IfcDirection
+		#rdf:type 							ifc:IfcDirection ;
+		ifc:directionRatios_IfcDirection 	?IfcReal_List ;
+		.	
+		
+	# CREATE THE LIST //////////////////////////////////////////////////////////////
+	
+	?IfcReal_List		
+		list:hasNext*							?IfcRealNode_List_Next ;
+		.
+	?IfcRealNode_List_Next								
+		list:hasContents						?IfcReal ;					
+		.
+	OPTIONAL {	
+		?IfcRealNode_List_Next
+			list:hasNext						?IfcRealNode_List_Last ;		
+			.
+	}
+	?IfcReal
+		#rdf:type           					ifc:IfcReal ;
+		express:hasDouble  						?IfcRealValue ;
+		.				
+
+	# ///////////////////////////////////////////////////////////////////////////////		
+		
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcDirection), "IfcDirection_" )))) as ?simAxisRefId ) . 
+		
+	bind( strafter( STR(?physicalOrVirtualBoundary_temp), "#" ) as ?physicalOrVirtualBoundary ).
+	bind( strafter( STR(?internalOrExternalBoundary_temp), "#" ) as ?internalOrExternalBoundary ).
+	#bind( strafter( xsd:string(?IfcRelSpaceBoundary2ndLevel), "IfcRelSpaceBoundary2ndLevel_" ) as ?IfcDirection ) .
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcRelSpaceBoundary2ndLevel), "IfcRelSpaceBoundary2ndLevel_" )))) as ?simRefId ) . 
+		
+	FILTER (?description = "2a" || ?description = "2A")
+	
+	OPTIONAL {
+		?IfcRelSpaceBoundary2ndLevel 
+			ifc:relatedBuildingElement_IfcRelSpaceBoundary ?relElement .
+	}
+	OPTIONAL {
+		?IfcRelSpaceBoundary2ndLevel 
+			ifc:correspondingBoundary_IfcRelSpaceBoundary2ndLevel ?otherSpace .	
+	}
+	OPTIONAL {
+		?IfcRelSpaceBoundary2ndLevel 
+		    ifc:parentBoundary_IfcRelSpaceBoundary1stLevel ?parent .
+	}
+	
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcRelSpaceBoundary2ndLevel), "IfcRelSpaceBoundary2ndLevel_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .
+}
+
+
+
+

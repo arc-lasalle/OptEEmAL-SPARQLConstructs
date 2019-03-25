@@ -1,0 +1,125 @@
+# IMPORTANT: use "ifc" always as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX list: <https://w3id.org/list#>
+PREFIX express: <https://w3id.org/express#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+# Description
+# Transform an "IfcZone" into "SimDoor_GlazedDoor_ExteriorDetailed" 
+
+# Relation with other queries:
+# - 
+
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1 
+		rdf:type 								simmodel:SimModel ;
+		#simmodel:simList_MaterialList_Default 	?IfcMaterialConstituentSet ; # simList_MaterialList_Default -> SimList_MaterialList_Default
+		.
+	?IfcMaterialConstituentSet 
+		rdf:type 						simbldg:SimList_MaterialList ;
+		simcore:simModelType 			"MaterialList"^^xsd:string ;
+		simcore:sourceModelSchema 		"IFC4"^^xsd:string ;
+		simcore:sourceModelObjectType 	"IfcMaterialConstituentSet"^^xsd:string ;
+		simcore:isTemplateObject 		"false"^^xsd:boolean ;
+		simcore:simUniqueID 			"not defined"^^xsd:string ;
+		simbldg:materials 				?IfcMaterial_List0 ;
+		simcore:refId 					?RefId ;
+		.
+	# list of units
+	?IfcMaterial_List1 
+		rdf:type 			simbldg:Materials_List;
+		list:hasContents 	?IfcMaterial ;
+		list:hasNext 		?restNil ;	
+		.
+}
+WHERE
+{
+	{
+		SELECT 	?IfcMaterialConstituentSet 
+				?IfcItem 
+
+				#New URIs for concatenating the list items
+				
+				#First item of the list, linked to the curtainwall URI.
+				(URI(CONCAT( CONCAT (xsd:string(?IfcMaterialConstituentSet), "_Item_List_" ), xsd:string(1))) AS ?IfcMaterial_List0) 
+				
+				#Current item of the list.
+				(URI(CONCAT( CONCAT (xsd:string(?IfcMaterialConstituentSet), "_Item_List_" ), xsd:string(?ranking))) AS ?IfcMaterial_List1) 
+
+				#Next item of the list and the last item of the list. Are used to determine the rdf:rest property (?restNil). See bind at the end.
+				(URI(CONCAT( CONCAT (xsd:string(?IfcMaterialConstituentSet), "_Item_List_" ), xsd:string(?ranking+1))) AS ?IfcMaterial_List_Next) 
+				(URI(CONCAT( CONCAT (xsd:string(?IfcMaterialConstituentSet), "_Item_List_" ), xsd:string(?rankingMax+1))) AS ?IfcMaterial_ListMax)  
+		WHERE
+		{
+			{
+				#Subquery to order the IfcMemembers, IfcPlates, IfcWindows, IfcDoors of a curtain wall. Each item will have a rank number.
+				SELECT ?IfcMaterialConstituentSet ?IfcItem ?simMemberRefId (COUNT(*) as ?ranking)  
+				WHERE 
+				{
+					FILTER NOT EXISTS { 
+						?IfcRelAssociatesMaterial
+							rdf:type										ifc:IfcRelAssociatesMaterial;
+							ifc:relatedObjects_IfcRelAssociates  			?IfcPlate ;
+							ifc:relatingMaterial_IfcRelAssociatesMaterial  	?IfcMaterialConstituentSet ;
+							.
+						?IfcPlate
+							rdf:type										ifc:IfcPlate ;
+							.
+					}
+				
+					?IfcMaterialConstituentSet 
+						rdf:type ifc:IfcMaterialConstituentSet ;
+						ifc:materialConstituents_IfcMaterialConstituentSet ?IfcItem ;
+						ifc:materialConstituents_IfcMaterialConstituentSet ?IfcItemRest .
+										
+					BIND( strafter( xsd:string(?IfcItem), "IfcMaterialConstituent_" ) AS ?simMemberRefId ) .
+					BIND( strafter( xsd:string(?IfcItemRest), "IfcMaterialConstituent_" ) AS ?simMemberRestRefId ) .
+							
+					FILTER( xsd:long(?simMemberRefId) >= xsd:long(?simMemberRestRefId) )
+				}
+				GROUP BY ?IfcMaterialConstituentSet ?IfcItem ?simMemberRefId
+				ORDER BY ?ranking
+			}
+			
+			{
+				#Subquery to get the maximum number of items of the list.
+				SELECT ?IfcMaterialConstituentSet (COUNT(?IfcItem) as ?rankingMax)  
+				WHERE 
+				{
+					?IfcMaterialConstituentSet 
+						rdf:type ifc:IfcMaterialConstituentSet ;
+						ifc:materialConstituents_IfcMaterialConstituentSet ?IfcItem ;
+						.
+				}
+				GROUP BY ?IfcMaterialConstituentSet
+			} 
+		}
+	}
+	#to determine the rdf:rest property.	
+	
+	?IfcItem 
+		ifc:material_IfcMaterialConstituent ?IfcMaterial ;
+		.
+	
+	BIND( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcMaterialConstituentSet), "IfcMaterialConstituentSet_" )))) as ?RefId ) . 
+	BIND ( IF ( xsd:string(?IfcMaterial_List_Next) = xsd:string(?IfcMaterial_ListMax), rdf:nil, ?IfcMaterial_List_Next ) AS ?restNil ).
+
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcMaterialConstituentSet), "IfcMaterialConstituentSet_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .
+}
+
+
+
+
+
+

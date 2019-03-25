@@ -1,0 +1,242 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+# last modification: 2017.07.24
+
+CONSTRUCT
+{
+	?SimModel_ID1 
+		rdf:type 													simmodel:SimModel ;
+		simmodel:simGeomSurface_BoundedSurface_CurveBoundedPlane 	?IfcCurveBoundedPlane ;
+		simmodel:simGeomSurface_ElementarySurface_Plane 			?IfcPlane ;
+		simmodel:simPlacement_Axis2Placement3D_Default 				?IfcAxis2Placement3D ;
+		simmodel:simGeomVector_Vector_Direction						?IfcDirectionAxis ;
+		simmodel:simGeomVector_Vector_Direction 					?IfcDirection ;
+		simmodel:simGeomPoint_Point_CartesianPoint					?IfcCartesianPoint ;
+		.	
+	?IfcCurveBoundedPlane 
+		rdf:type 						simgeom:SimGeomSurface_BoundedSurface_CurveBoundedPlane ;
+		simgeom:basisSurface 			?IfcPlane ;
+		simgeom:outerBoundary 			?IfcPolyline ;
+		simcore:simModelType 			"BoundedSurface"^^xsd:string ;
+		simcore:simModelSubtype 		"CurveBoundedPlane"^^xsd:string ;
+		simcore:isTemplateObject 		"false"^^xsd:boolean ;
+		simcore:refId 					?IfcCurveBoundedPlane_refId ;
+		simcore:sourceModelObjectType 	"IfcCurveBoundedPlane" ;
+		simcore:sourceModelSchema 		"IFC4" ;
+		simcore:simUniqueID 			"not defined" ;
+		.
+	# NEW >> ------------------------------------------------------------------------
+	?IfcPlane 
+		rdf:type 						simgeom:SimGeomSurface_ElementarySurface_Plane ;
+		simgeom:position 				?IfcAxis2Placement3D ;
+		simcore:simModelType 			"ElementarySurface"^^xsd:string ;
+		simcore:simModelSubtype 		"Plane"^^xsd:string ;
+		simcore:isTemplateObject 		"false"^^xsd:boolean ;
+		simcore:sourceModelObjectType  	"IfcPlane"^^xsd:string ;
+		simcore:sourceModelSchema  	 	"IFC4" ;
+		simcore:simUniqueID        	 	"not defined" ;
+		simcore:refId 					?IfcPlane_refId ;
+		.
+	?IfcAxis2Placement3D 
+		rdf:type 						simgeom:SimPlacement_Axis2Placement3D_Default ;
+		simgeom:axis                   	?IfcDirectionAxis ;
+		simgeom:refDirection           	?IfcDirection ;
+		simgeom:location               	?IfcCartesianPoint ;
+		simcore:isTemplateObject 		"false"^^xsd:boolean ;
+		simcore:simModelSubtype        	"Default"^^xsd:string ;
+		simcore:simModelType 		   	"Axis2Placement3D"^^xsd:string ;
+		simcore:simUniqueID            	"not defined" ;
+		simcore:sourceModelObjectType  	"IfcAxis2Placement3D" ;
+		simcore:sourceModelSchema      	"IFC4" ;
+		simcore:refId 					?IfcAxis2Placement3D_RefId ;
+		.
+	?IfcDirectionAxis
+		rdf:type 						simgeom:SimGeomVector_Vector_Direction ;
+        simgeom:directionRatios        	?IfcReal_List_Axis ;
+		simcore:simModelType           	"Vector"^^xsd:string ;
+        simcore:simModelSubtype        	"DirectionAxis"^^xsd:string ;
+        simcore:sourceModelObjectType  	"IfcDirection"^^xsd:string ;
+        simcore:sourceModelSchema      	"IFC4" ;
+		simcore:isTemplateObject 		"false"^^xsd:boolean ;
+		simcore:refId                  	?simDirectionAxisRefId ;
+        simcore:simUniqueID            	"not defined" ;
+		.	
+	# ------------------------------------------------------------------------ << NEW 2
+	?IfcRealNode_List_Next_Axis
+		rdf:type 			simcore:DoubleList ;
+		list:hasContents 	?IfcRealValue_Axis ;
+		list:hasNext 		?IfcRealNode_List_Last_Axis ;
+		.
+	# ------------------------------------------------------------------------ << NEW		
+	?IfcDirection
+		rdf:type 						simgeom:SimGeomVector_Vector_Direction ;
+		simgeom:directionRatios 		?IfcReal_List ;
+		simcore:simModelType 			"Vector"^^xsd:string ;
+		simcore:simModelSubtype 		"Direction"^^xsd:string ;
+		simcore:sourceModelSchema 		"IFC4"^^xsd:string ;
+		simcore:sourceModelObjectType 	"SimGeomVector"^^xsd:string ;
+		simcore:isTemplateObject 		"false"^^xsd:boolean ;
+		simcore:refId 					?simAxisRefId ;
+		simcore:simUniqueID 			"not defined" ;
+		.
+	# ------------------------------------------------------------------------ << NEW 2
+	?IfcRealNode_List_Next
+		rdf:type 			simcore:DoubleList ;
+		list:hasContents 	?IfcRealValue_2 ;
+		list:hasNext 		?IfcRealNode_List_Last_2 ;
+		.
+	# ------------------------------------------------------------------------ << NEW			
+		
+	?IfcCartesianPoint 
+		rdf:type 							simgeom:SimGeomPoint_Point_CartesianPoint ;
+		simcore:simModelType 				"Point"^^xsd:string ;
+		simcore:simModelSubtype 			"CartesianPoint"^^xsd:string ;
+		simcore:isTemplateObject 			"false"^^xsd:boolean ;
+		simcore:sourceModelObjectType 		"IfcCartesianPoint" ;
+		simcore:sourceModelSchema 			"IFC4" ;
+		simcore:simUniqueID 				"not defined" ;
+		simgeom:coordinates_MeasureValue 	?IfcLengthMeasureNode_List ;
+		simcore:refId 						?SimGeomPoint_Point_CartesianPoint_RefId ;
+		.		
+	# ------------------------------------------------------------------------ << NEW 2	
+	?IfcLengthMeasureNode_List_Next 
+		rdf:type 			simcore:DoubleList ;
+		list:hasContents 	?IfcLengthMeasureValue ;
+		list:hasNext 		?IfcLengthMeasureNode_List_Last ;
+		#rdf:TEST_1111		"TEST_1111" ;
+		.	
+	# ------------------------------------------------------------------------ << NEW
+}
+WHERE 
+{
+	?IfcCurveBoundedPlane 
+		rdf:type 								ifc:IfcCurveBoundedPlane ;
+		ifc:basisSurface_IfcCurveBoundedPlane 	?IfcPlane ; 
+		ifc:outerBoundary_IfcCurveBoundedPlane 	?IfcPolyline ;
+		.		
+	?IfcPolyline rdf:type  ifc:IfcPolyline .	
+	
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcCurveBoundedPlane), "IfcCurveBoundedPlane_" )))) as ?IfcCurveBoundedPlane_refId ) . 
+	
+	?IfcPlane 
+		rdf:type  							ifc:IfcPlane ;
+		ifc:position_IfcElementarySurface	?IfcAxis2Placement3D ;
+		.
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcPlane), "IfcPlane_" )))) as ?IfcPlane_refId ) . 
+
+	?IfcAxis2Placement3D 
+		rdf:type 								ifc:IfcAxis2Placement3D ;
+		.
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcAxis2Placement3D), "IfcAxis2Placement3D_" )))) as ?IfcAxis2Placement3D_RefId ) . 
+	
+	OPTIONAL { 
+		# axis ----------------------------------------------------------------------
+		?IfcAxis2Placement3D 	
+			ifc:axis_IfcAxis2Placement3D 			?IfcDirectionAxis ;
+			.
+		?IfcDirectionAxis 
+			#rdf:type 								ifc:IfcDirection ;
+			ifc:directionRatios_IfcDirection 		?IfcReal_List_Axis ;
+			.	
+			
+		# CREATE THE LIST //////////////////////////////////////////////////////////////
+	
+		?IfcReal_List_Axis		
+			list:hasNext*						?IfcRealNode_List_Next_Axis ;
+			.
+		?IfcRealNode_List_Next_Axis								
+			list:hasContents					?IfcReal_Axis ;					
+			.
+		OPTIONAL {	
+			?IfcRealNode_List_Next_Axis
+				list:hasNext					?IfcRealNode_List_Last_Axis ;		
+				.
+		}
+		?IfcReal_Axis
+			#rdf:type           				ifc:IfcReal ;
+			express:hasDouble  					?IfcRealValue_Axis ;
+			.				
+
+		# ///////////////////////////////////////////////////////////////////////////////			
+			
+		bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcDirectionAxis), "IfcDirection_" )))) as ?simDirectionAxisRefId ) . 
+	}
+	OPTIONAL { 
+		# refDirection --------------------------------------------------------------
+		?IfcAxis2Placement3D   	
+			ifc:refDirection_IfcAxis2Placement3D  	?IfcDirection ;
+			.
+		?IfcDirection 
+			#rdf:type 								ifc:IfcDirection ;
+			ifc:directionRatios_IfcDirection 		?IfcReal_List ;
+			.	
+			
+		# CREATE THE LIST //////////////////////////////////////////////////////////////
+	
+		?IfcReal_List		
+			list:hasNext*							?IfcRealNode_List_Next ;
+			.
+		?IfcRealNode_List_Next								
+			list:hasContents						?IfcReal ;					
+			.
+		OPTIONAL {	
+			?IfcRealNode_List_Next
+				list:hasNext						?IfcRealNode_List_Last ;		
+				.
+		}
+		?IfcReal
+			#rdf:type           					ifc:IfcReal ;
+			express:hasDouble  						?IfcRealValue ;
+			.				
+
+		# ///////////////////////////////////////////////////////////////////////////////		
+
+		bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcDirection), "IfcDirection_" )))) as ?simAxisRefId ) . 
+	}
+	OPTIONAL { 
+		# location -------------------------------------------------------------------
+		?IfcAxis2Placement3D 	
+			ifc:location_IfcPlacement 				?IfcCartesianPoint ;
+			.
+		?IfcCartesianPoint
+			#rdf:type 								ifc:IfcCartesianPoint ;
+			ifc:coordinates_IfcCartesianPoint 		?IfcLengthMeasureNode_List ;
+			.	
+			
+		# CREATE THE LIST //////////////////////////////////////////////////////////////
+		
+		?IfcLengthMeasureNode_List		
+			list:hasNext*							?IfcLengthMeasureNode_List_Next ;
+			.
+		?IfcLengthMeasureNode_List_Next								
+			list:hasContents						?IfcLengthMeasure ;					
+			.
+		OPTIONAL {	
+			?IfcLengthMeasureNode_List_Next
+				list:hasNext						?IfcLengthMeasureNode_List_Last ;		
+				.
+		}
+		?IfcLengthMeasure
+			#rdf:type           					ifc:IfcLengthMeasure ;
+			express:hasDouble  						?IfcLengthMeasureValue ;
+			.				
+	
+		# ///////////////////////////////////////////////////////////////////////////////		
+			
+		bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcCartesianPoint), "IfcCartesianPoint_" )))) as ?SimGeomPoint_Point_CartesianPoint_RefId ) .
+	}
+	
+	# ----------------------------------------------------------------------- << NEW
+	
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcPlane), "IfcPlane_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .	
+}

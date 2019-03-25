@@ -1,0 +1,58 @@
+# IMPORTANT: use "ifc" always as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX list: <https://w3id.org/list#>
+PREFIX express: <https://w3id.org/express#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+# Description
+# Transform an "IfcZone" into "SimZone" 
+
+# Relation with other queries:
+# - 
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1 
+		rdf:type 						simmodel:SimModel ;
+		#simmodel:simZone 				?IfcZone ;						# <-- this property not exist in the SimModel ontology, but TUC have it on its version of SimModel models (GC)
+		.		
+	?IfcZone 
+		rdf:type 						simbldg:SimZone ;
+		simbldg:name                   	?name ;
+        #simbldg:spaceAssignments       ?IfcRelAssigns_List0 ;
+        simcore:ifcGlobalID            	?IfcGloballyUniqueIdValue ;
+        simcore:isTemplateObject       	false ;
+        simcore:refId                  	?RefId ;
+        simcore:simUniqueID            	"none" ;
+        simcore:sourceModelObjectType  	"IfcZone" ;
+        simcore:sourceModelSchema      	"IFC4" ;
+		.		
+}
+WHERE
+{
+	?IfcZone 
+		rdf:type 				ifc:IfcZone ;
+		ifc:globalId_IfcRoot 	[ express:hasString ?IfcGloballyUniqueIdValue ] ;
+		ifc:name_IfcRoot 		[ express:hasString ?name ] ;
+		.		
+	# ///////////////////////////////////////////////////////////////////////////////		
+		
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcZone), "IfcZone_" )))) as ?RefId ) . 
+	
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcZone), "IfcZone_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .
+}
+
+
+
+
+
+

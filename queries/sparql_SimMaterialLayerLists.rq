@@ -1,0 +1,42 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX list: <https://w3id.org/list#>
+PREFIX express: <https://w3id.org/express#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+
+# last modification 2017.11.17
+
+# TO RVEIW --> list:hasNext is not recursive
+
+# Description:
+# Transform a "list of IfcMaterialLayers" of an IfcMaterialLayerSet into a "SimMaterialLayer list"
+# this query is related to --> "sparql_simMaterialLayerSet.rq"
+
+CONSTRUCT
+{
+	?MaterialLayerNode_List 
+		rdf:type 			simres:MaterialLayers_List ;
+		list:hasContents 	?MaterialLayer ;
+		list:hasNext		?MaterialLayer_List_Next ;
+		.
+}
+WHERE
+{
+	# Iterate the list of material layers:
+	?MaterialLayerNode_List 
+		rdf:type  			ifc:IfcMaterialLayer_List ;
+		list:hasContents 	?MaterialLayer ;
+		.
+	OPTIONAL {
+		?MaterialLayerNode_List list:hasNext ?MaterialLayer_List_Next .
+	}
+}
+	

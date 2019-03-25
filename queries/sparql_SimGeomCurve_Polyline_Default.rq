@@ -1,0 +1,126 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX list: <https://w3id.org/list#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+# last modification: 2017.09.08
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1 
+		rdf:type 									simmodel:SimModel ;
+		simmodel:simGeomCurve_Polyline_Default 		?IfcPolyline ;
+		simmodel:simGeomPoint_Point_CartesianPoint 	?IfcCartesianPoint ;
+		.
+	# PART 3 Geometry -----------------------------------------------------
+	?IfcPolyline 
+		rdf:type 						simgeom:SimGeomCurve_Polyline_Default ;
+		simcore:simModelType 			"Polyline"^^xsd:string ;
+		simcore:simModelSubtype 		"Default"^^xsd:string ;
+		simcore:isTemplateObject 		"false"^^xsd:boolean ;
+		simgeom:points 					?IfcCartesianPoint_List ;
+		simcore:refId 					?SimGeomCurve_Polyline_Default_RefId ;
+		simcore:simUniqueID 			"not defined" ;
+		simcore:sourceModelObjectType  	"IfcPolyline" ;
+		simcore:sourceModelSchema 		"IFC4" ;
+		.
+	
+	# NEW >> ------------------------------------------------------------------------
+	# Postion -----------------------------------------------------------------------
+	
+	?IfcCartesianPoint_List_Next 	
+		rdf:type 							simgeom:Points_List ;
+		list:hasContents 					?IfcCartesianPoint ;
+		list:hasNext 						?IfcCartesianPoint_Tail ;
+		.	
+		
+	# PART 2 other instances ----------------------------------------------	
+	?IfcCartesianPoint 
+		rdf:type 							simgeom:SimGeomPoint_Point_CartesianPoint ;
+		simcore:simModelType 				"Point"^^xsd:string ;
+		simcore:simModelSubtype 			"CartesianPoint"^^xsd:string ;
+		simcore:isTemplateObject 			"false"^^xsd:boolean ;
+		simcore:sourceModelObjectType 		"IfcCartesianPoint" ;
+		simcore:sourceModelSchema 			"IFC4" ;
+		simcore:simUniqueID 				"not defined" ;
+		simgeom:coordinates_MeasureValue 	?IfcLengthMeasureNode_List ;
+		simcore:refId 						?SimGeomPoint_Point_CartesianPoint_RefId ;
+		.	
+	# ------------------------------------------------------------------------ << NEW 2	
+	?IfcLengthMeasureNode_List_Next 
+		rdf:type 							simcore:DoubleList ;
+		list:hasContents 					?IfcLengthMeasureValue ;
+		list:hasNext 						?IfcLengthMeasureNode_List_Last ;
+		.	
+	# ------------------------------------------------------------------------ << NEW
+}
+WHERE 
+{
+	# Geometry ------------------------------------------------------------
+	
+	?IfcPolyline 
+		rdf:type 				ifc:IfcPolyline ;
+		ifc:points_IfcPolyline 	?IfcCartesianPoint_List ;
+		.	
+	
+	# SimGeomCurve_Polyline_Default RefID:
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcPolyline), "IfcPolyline_" )))) as ?SimGeomCurve_Polyline_Default_RefId ) . 
+	
+	# NEW >> ------------------------------------------------------------------------
+	# Postion -----------------------------------------------------------------------
+	
+	?IfcCartesianPoint_List
+		list:hasNext*						?IfcCartesianPoint_List_Next ;
+		.
+	?IfcCartesianPoint_List_Next
+		list:hasContents					?IfcCartesianPoint ;
+		.
+	OPTIONAL {
+		?IfcCartesianPoint_List_Next
+			list:hasNext					?IfcCartesianPoint_Tail ;
+			.
+	}
+	
+	?IfcCartesianPoint
+		#rdf:type 							ifc:IfcCartesianPoint ;
+        ifc:coordinates_IfcCartesianPoint 	?IfcLengthMeasureNode_List ;
+		.	
+	
+		# CREATE THE LIST //////////////////////////////////////////////////////////////
+		
+		?IfcLengthMeasureNode_List		
+			list:hasNext*						?IfcLengthMeasureNode_List_Next ;
+			.
+		?IfcLengthMeasureNode_List_Next								
+			list:hasContents					?IfcLengthMeasure ;					
+			.
+		OPTIONAL {	
+			?IfcLengthMeasureNode_List_Next
+				list:hasNext					?IfcLengthMeasureNode_List_Last ;		
+				.
+		}
+		?IfcLengthMeasure
+			#rdf:type           				ifc:IfcLengthMeasure ;
+			express:hasDouble  					?IfcLengthMeasureValue ;
+			.				
+	
+		# ///////////////////////////////////////////////////////////////////////////////		
+
+	
+	# SimGeomPoint_Point_CartesianPoint RefID:
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcCartesianPoint), "IfcCartesianPoint_" )))) as ?SimGeomPoint_Point_CartesianPoint_RefId ) . 
+	
+	
+	# ------------------------------------------------------------------------ << NEW
+	
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcPolyline), "IfcPolyline_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .
+}

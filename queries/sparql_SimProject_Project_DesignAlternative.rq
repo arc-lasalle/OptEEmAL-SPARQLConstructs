@@ -1,0 +1,137 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX express: <https://w3id.org/express#>
+PREFIX list: <https://w3id.org/list#> 
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+
+# last modification : 2017.07.24
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1 
+		rdf:type 										simmodel:SimModel ;
+		simmodel:simProject_Project_DesignAlternative 	?IfcProject ;
+		.	
+	# PART 2 Building Instance --------------------------------------------
+	?IfcProject 
+		rdf:type 								simbldg:SimProject_Project_DesignAlternative ;
+		simcore:isTemplateObject 				"false"^^xsd:boolean ;
+		simcore:objectOwnerHistory   		    ?IfcOwnerHistory ;
+		simcore:simModelType 					"Project"^^xsd:string ;
+		simcore:simModelSubtype 				"DesignAlternative"^^xsd:string ;
+		simcore:sourceModelSchema 				"IFC4"^^xsd:string ;
+		simcore:sourceModelObjectType 			"IfcProject"^^xsd:string ;
+		simcore:simModelName 					?name_IfcRoot ;
+		simcore:ifcGlobalID 					?IfcGloballyUniqueIdValue ;
+		simbldg:_3DModelRepresentationContexts 	?IfcGeometricRepresentationContext ;
+		simbldg:projectUnits 					?IfcUnits_List0 ;
+		simcore:simUniqueID 					"not defined" ;
+		simcore:refId 							?IfcProject_refId ;
+		.
+	# list of units
+	?IfcUnits_List1 
+		rdf:type 			simbldg:ProjectUnits_List ;
+		list:hasContents 	?IfcItem ;
+		list:hasNext 		?restNil ;
+		.		
+	?IfcOwnerHistory
+        rdf:type 	simres:SimOwnerHistory_Default_Default ;
+		.
+}
+WHERE 
+{
+	{
+		SELECT 	?IfcProject 
+				?IfcItem 
+
+				#New URIs for concatenating the list items
+				
+				#First item of the list, linked to the curtainwall URI.
+				(URI(CONCAT( CONCAT (xsd:string(?IfcProject), "_Item_List_" ), xsd:string(1))) AS ?IfcUnits_List0) 
+				
+				#Current item of the list.
+				(URI(CONCAT( CONCAT (xsd:string(?IfcProject), "_Item_List_" ), xsd:string(?ranking))) AS ?IfcUnits_List1) 
+
+				#Next item of the list and the last item of the list. Are used to determine the rdf:rest property (?restNil). See bind at the end.
+				(URI(CONCAT( CONCAT (xsd:string(?IfcProject), "_Item_List_" ), xsd:string(?ranking+1))) AS ?IfcUnits_List_Next) 
+				(URI(CONCAT( CONCAT (xsd:string(?IfcProject), "_Item_List_" ), xsd:string(?rankingMax+1))) AS ?IfcUnits_List_Max)  
+		WHERE
+		{
+			{
+				#Subquery to order the IfcMemembers, IfcPlates, IfcWindows, IfcDoors of a curtain wall. Each item will have a rank number.
+				SELECT ?IfcProject ?IfcItem ?simMemberRefId (COUNT(*) as ?ranking)  
+				WHERE 
+				{
+					?IfcProject 
+						rdf:type ifc:IfcProject ;
+						ifc:globalId_IfcRoot [ express:hasString ?IfcGloballyUniqueIdValue ] ;
+						ifc:name_IfcRoot [ express:hasString ?name_IfcRoot ] ;
+						ifc:representationContexts_IfcContext ?IfcGeometricRepresentationContext;
+						ifc:unitsInContext_IfcContext ?unitsAssignements;
+						.
+						
+					?unitsAssignements 
+						ifc:units_IfcUnitAssignment  ?IfcItem ;
+						ifc:units_IfcUnitAssignment  ?IfcItemRest .
+							
+					BIND(REPLACE(xsd:string(?IfcItem), "IfcSIUnit", "IfcItem", "i") AS ?IfcItem1).
+					BIND(REPLACE(xsd:string(?IfcItem1), "IfcConversionBasedUnit", "IfcItem", "i") AS ?IfcItem2).
+					BIND(REPLACE(xsd:string(?IfcItem2), "IfcDerivedUnit", "IfcItem", "i") AS ?IfcItem3).
+
+					BIND(REPLACE(xsd:string(?IfcItemRest), "IfcSIUnit", "IfcItem", "i") AS ?IfcItemRest1).
+					BIND(REPLACE(xsd:string(?IfcItemRest1), "IfcConversionBasedUnit", "IfcItem", "i") AS ?IfcItemRest2).
+					BIND(REPLACE(xsd:string(?IfcItemRest2), "IfcDerivedUnit", "IfcItem", "i") AS ?IfcItemRest3).
+										
+					BIND( strafter( xsd:string(?IfcItem3), "IfcItem_" ) AS ?simMemberRefId ) .
+					BIND( strafter( xsd:string(?IfcItemRest3), "IfcItem_" ) AS ?simMemberRestRefId ) .
+							
+					FILTER( xsd:long(?simMemberRefId) >= xsd:long(?simMemberRestRefId) )
+				}
+				GROUP BY ?IfcProject ?IfcItem ?simMemberRefId
+				ORDER BY ?ranking
+			}
+			
+			{
+				#Subquery to get the maximum number of items of the list.
+				SELECT ?IfcProject (COUNT(?IfcItem) as ?rankingMax)  
+				WHERE 
+				{
+					?IfcProject 
+						rdf:type ifc:IfcProject ;
+						ifc:unitsInContext_IfcContext [ ifc:units_IfcUnitAssignment  ?IfcItem ];
+						.
+				}
+				GROUP BY ?IfcProject
+			} 
+		}
+	}
+	
+	?IfcProject 
+		ifc:globalId_IfcRoot [ express:hasString ?IfcGloballyUniqueIdValue ] ;
+		ifc:ownerHistory_IfcRoot  ?IfcOwnerHistory ;
+		ifc:representationContexts_IfcContext ?IfcGeometricRepresentationContext ;
+		.
+	?IfcOwnerHistory 
+		rdf:type ifc:IfcOwnerHistory ;
+		.	
+		
+	BIND ( IF ( xsd:string(?IfcUnits_List_Next) = xsd:string(?IfcUnits_List_Max), rdf:nil, ?IfcUnits_List_Next ) AS ?restNil ).
+	
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcProject), "IfcProject_" )))) as ?IfcProject_refId ) . 
+		
+	#to determine the rdf:rest property.
+	#BIND ( IF ( xsd:string(?IfcUnits_List2) = xsd:string(?IfcUnits_ListMax), rdf:nil, ?IfcUnits_List2 ) AS ?restNil ).
+}
+
+
+
+

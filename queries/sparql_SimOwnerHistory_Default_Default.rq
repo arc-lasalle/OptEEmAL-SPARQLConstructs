@@ -1,0 +1,47 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+
+# last modification: 2017.07.24
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1 
+		rdf:type 									simmodel:SimModel ;
+		simmodel:simOwnerHistory_Default_Default 	?IfcOwnerHistory ;
+		.	
+	# PART 2 Building Instance --------------------------------------------
+	?IfcOwnerHistory 
+		rdf:type 						simres:SimOwnerHistory_Default_Default ;
+		simcore:isTemplateObject 		"false"^^xsd:boolean ;
+		simcore:simModelType 			"Default"^^xsd:string ;
+		simcore:simModelSubtype 		"Default"^^xsd:string ;
+		simcore:sourceModelSchema 		"IFC4"^^xsd:string ;
+		simcore:sourceModelObjectType 	"IfcOwnerHistory"^^xsd:string ;
+		simcore:simUniqueID 			"not defined" ;
+		simcore:refId 					?RefId ;
+		.
+}
+WHERE 
+{
+	?IfcOwnerHistory 
+		rdf:type ifc:IfcOwnerHistory ;
+		.
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcOwnerHistory), "IfcOwnerHistory_" )))) as ?RefId ) . 
+	
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcOwnerHistory), "IfcOwnerHistory_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .		
+}
+
+
+
+

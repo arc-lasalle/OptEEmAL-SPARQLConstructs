@@ -1,0 +1,61 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+# last modification: 2017.07.24
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1 
+		rdf:type 								simmodel:SimModel ;
+		simmodel:simBuilding_Building_Default 	?IfcBuilding ;
+		.
+	# PART 2 Building Instance --------------------------------------------
+	?IfcBuilding 
+		rdf:type 									simbldg:SimBuilding_Building_Default ;
+		simbldg:buildingInSpatialContainer 			?IfcSite ;	
+		simcore:compositionType        				?ElementType2 ;
+		simcore:ifcGlobalID 						?IfcGloballyUniqueIdValue ;
+		simcore:isTemplateObject 					"false"^^xsd:boolean ;
+		simcore:placement 							?IfcLocalPlacement ; 
+		simcore:refId 								?BuildingRefId ;
+		simcore:simModelSubtype 					"Default"^^xsd:string ;
+		simcore:simModelType 						"Building"^^xsd:string ;
+		simcore:simUniqueID 						"not defined" ;
+		simcore:sourceModelObjectType 				"IfcBuilding"^^xsd:string ;
+		simcore:sourceModelSchema 					"IFC4"^^xsd:string ;
+		.
+}
+WHERE 
+{
+	# PART 1 General information --------------------------------------------
+	?IfcBuilding 
+		rdf:type 										ifc:IfcBuilding ;
+		ifc:globalId_IfcRoot 							[ express:hasString ?IfcGloballyUniqueIdValue ] ;
+		ifc:objectPlacement_IfcProduct  				?IfcLocalPlacement ;
+		ifc:compositionType_IfcSpatialStructureElement  ?ElementType ;
+		.
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcBuilding), "IfcBuilding_" )))) as ?BuildingRefId ) . 
+	
+	?IfcRelAggregates
+		ifc:relatedObjects_IfcRelAggregates ?IfcBuilding ;
+		ifc:relatingObject_IfcRelAggregates ?IfcSite ;
+		.
+	
+	bind( STRAFTER( xsd:string(?ElementType), "#" ) as ?ElementType2 )
+	
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcBuilding), "IfcBuilding_" ), "SimModel_ID1")) as ?SimModel_ID1 )
+}
+
+
+
+

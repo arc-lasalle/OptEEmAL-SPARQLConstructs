@@ -1,0 +1,52 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1 
+		rdf:type 								simmodel:SimModel ;
+		simmodel:simSIUnitType_SiUnit_Default 	?IfcSIUnit  ;
+		.	
+	# PART 2 Building Instance --------------------------------------------
+	?IfcSIUnit 
+		rdf:type 						simres:SimSIUnitType_SiUnit_Default ;
+		simcore:isTemplateObject 		"false"^^xsd:boolean ;
+		simcore:simModelType 			"SiUnit"^^xsd:string ;
+		simcore:simModelSubtype 		"Default"^^xsd:string ;
+		simcore:sourceModelSchema 		"IFC4"^^xsd:string ;
+		simcore:sourceModelObjectType 	"IfcSIUnit"^^xsd:string ;
+		simcore:simUniqueID 			"not defined" ;
+		simcore:refId 					?RefId ;
+		.
+}
+WHERE 
+{
+	{
+		?IfcSIUnit 	rdf:type 	ifc:IfcSIUnit .
+		bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcSIUnit), "IfcSIUnit_" )))) as ?RefId ) . 
+	
+		# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+		bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcSIUnit), "IfcSIUnit_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .		
+	}
+	UNION
+	{
+		?IfcSIUnit	rdf:type	ifc:IfcDerivedUnit .
+		bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcSIUnit), "IfcDerivedUnit_" )))) as ?RefId ) . 
+	
+		# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+		bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcSIUnit), "IfcDerivedUnit_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .		
+	}
+}
+
+
+
+

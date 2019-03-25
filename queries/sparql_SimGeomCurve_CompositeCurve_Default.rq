@@ -1,0 +1,48 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+CONSTRUCT {
+ <notmatched> ?y ?z.
+} WHERE {
+ <notmatched> ?y ?z.
+}
+# 2018.07.19 AS: This mappings has been commented because seems that is not required by demo4 or torreturina
+# CONSTRUCT
+# {
+#	#PART 1 SimModel instance --------------------------------------------
+	# ?SimModel_ID1 
+		# rdf:type 											simmodel:SimModel ;
+		# simmodel:simGeomCurve_CompositeCurve_Default 		?IfcCompositeCurve ;
+		# simmodel:simGeomCurve_CompositeCurveSegment_Default ?inst_33 ;
+		# .	
+	# ?IfcCompositeCurve 
+		# rdf:type 			simgeom:SimGeomCurve_CompositeCurve_Default ;
+		# simgeom:segments 	?inst_33 ;
+		# .
+	# ?inst_33 
+		# rdf:type 			simgeom:SimGeomCurve_CompositeCurveSegment_Default ;
+		# simgeom:parentCurve ?inst_34 ;
+		# .
+# }
+# WHERE 
+# {
+	# ?IfcCompositeCurve
+		# rdf:type ifc:IfcCompositeCurve ;
+		# ifc:segments_IfcCompositeCurve ?inst_33 ;
+		# .
+	# ?inst_33 
+		# rdf:type ifc:IfcCompositeCurveSegment_List ;
+		# list:hasContents ?inst_34 ;
+		# .
+	
+#	#ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	# bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcCompositeCurve), "IfcCompositeCurve_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .
+# }

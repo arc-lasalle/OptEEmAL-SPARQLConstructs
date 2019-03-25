@@ -1,0 +1,142 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX list: <https://w3id.org/list#>
+PREFIX express: <https://w3id.org/express#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+# Description
+# Transform an "IfcMaterial" into "SimMaterial_GlazingMaterial_SimpleGlazingSystem" through "IfcMaterialProperties"
+
+# Relation with other queries:
+# - sparql_simMaterialLayer.rq
+# - sparql_simMaterial_Glazing_viaPSet
+# - sparql_simMaterial_Opaque.rq
+
+# Open issues:
+# - Since the type of layer for glazing or opaque materials is not defined in the IFC, we have to include all the pattern together.
+
+# SimMaterial_GlazingMaterial
+# 	SimMaterial_GlazingMaterial_Blind
+# 	SimMaterial_GlazingMaterial_ComplexShade
+#	SimMaterial_GlazingMaterial_Gap
+# 	SimMaterial_GlazingMaterial_Gas
+# 	SimMaterial_GlazingMaterial_GasMixture
+# 	SimMaterial_GlazingMaterial_Glazing 
+# 	SimMaterial_GlazingMaterial_GlazingRefractionExtinctionMethod
+# 	SimMaterial_GlazingMaterial_Screen
+# 	SimMaterial_GlazingMaterial_Shade
+# 	SimMaterial_GlazingMaterial_SimpleGlazingSystem <-------------------------------
+# 	SimMaterial_GlazingMaterial_Thermochromic
+
+# SimMaterialLayer
+#	SimMaterialLayer_EquivGlazingLayer
+#		SimMaterialLayer_EquivGlazingLayer_Default
+#	SimMaterialLayer_GlazingMaterialLayer
+#		SimMaterialLayer_GlazingMaterialLayer_Default
+#		SimMaterialLayer_GlazingMaterialLayer_Thermochromic
+#	SimMaterialLayer_OpaqueMaterialLayer
+#		SimMaterialLayer_OpaqueMaterialLayer_Default
+#	SimMaterialLayer_VirtualBoundaryLayer
+#		SimMaterialLayer_VirtualBoundaryLayer_Default
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1 
+		rdf:type 													simmodel:SimModel ;
+		simmodel:simMaterialLayer_GlazingMaterialLayer_Default 		?IfcMaterialLayer ;
+		simmodel:simMaterial_GlazingMaterial_SimpleGlazingSystem 	?IfcMaterial ;
+		.		
+	?IfcMaterialLayer 
+		rdf:type 								simres:SimMaterialLayer_GlazingMaterialLayer_Default ;
+		simcore:sourceModelSchema 				"IFC4"^^xsd:string ;		
+		simres:simMatLayer_MaterialName 		?MaterialLayerName ;
+		simres:layerMaterial 					?IfcMaterial ;
+		simres:isVentilated 					?isVentilated ;
+		simcore:sourceModelObjectType 			"IfcMaterialLayer"^^xsd:string ;		
+		simcore:simModelType 					"GlazingMaterialLayer"^^xsd:string ;
+		simcore:simModelSubtype 				"Default"^^xsd:string ;
+		simres:simMatLayer_LayerThickness 		?IfcNonNegativeLengthValue ;
+		simres:layerThickness					?IfcNonNegativeLengthValue ;		
+		simcore:isTemplateObject 				"false"^^xsd:boolean ;
+		simcore:simUniqueID 					"not defined"^^xsd:string ;
+		simcore:refId 							?simMaterialLayerRefId ;
+		.
+	?IfcMaterial 
+		rdf:type 								simres:SimMaterial_GlazingMaterial_SimpleGlazingSystem ;
+		simres:category                			?MaterialLayerName ;
+		simres:name                    			?MaterialLayerName ;
+		simcore:sourceModelSchema 				"IFC4"^^xsd:string ;
+		simcore:sourceModelObjectType 			"IfcMaterial"^^xsd:string ;
+		simcore:simUniqueID 					"not defined"^^xsd:string ;
+		# Glazing material properties -----------------------------------
+		simres:simMaterial_VisTrans	 			?VisualLightTransmittanceValue ;
+		simres:simMaterial_SolarHeatGainCoef 	?SolarHeatGainCoefficientValue ;
+		simres:simMaterial_UFactor 				?HeatTransferCoefficientValue ;
+		simcore:isTemplateObject 				"false"^^xsd:boolean ;
+		simcore:simModelType 					"GlazingMaterial"^^xsd:string ;
+		simcore:simModelSubtype 				"SimpleGlazingSystem"^^xsd:string ;
+		simcore:refId 							?simMemberRefId_simMaterial ;
+		.		
+}
+WHERE
+{
+	?IfcMaterial
+		rdf:type ifc:IfcMaterial ;
+		ifc:name_IfcMaterial [ express:hasString  ?MaterialLayerName ] ;
+		.	
+	OPTIONAL 
+	{
+		?IfcMaterialLayer 
+			rdf:type ifc:IfcMaterialLayer ;
+			ifc:material_IfcMaterialLayer ?IfcMaterial ;
+			ifc:layerThickness_IfcMaterialLayer  [ express:hasDouble  ?IfcNonNegativeLengthValue ] ;
+			.		
+		bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcMaterialLayer), "IfcMaterialLayer_" )))) as ?simMaterialLayerRefId ) . 	
+	}
+	#we relate the type of door if it has glass or not
+	FILTER regex(?MaterialLayerName, "glass", "i") .		
+
+	# 1. Visual Light Transmittance -------------------------------------------------------------	
+
+	?IfcMaterialProperties 
+		ifc:material_IfcMaterialProperties ?IfcMaterial ;
+		ifc:properties_IfcExtendedProperties ?IfcPropertySingleValue1 ;
+		ifc:properties_IfcExtendedProperties ?IfcPropertySingleValue2 ;
+		ifc:properties_IfcExtendedProperties ?IfcPropertySingleValue3 ;
+		.
+		
+	# 1.VisualLight Transmittance Value --------------------------------------------------
+	?IfcPropertySingleValue1 rdf:type ifc:IfcPropertySingleValue ;
+		ifc:name_IfcProperty [ express:hasString "Visual Light Transmittance" ];
+		ifc:nominalValue_IfcPropertySingleValue [ express:hasDouble ?VisualLightTransmittanceValue ] .
+		
+	# 2. SpecificHeatCapacity ------------------------------------------------------------		
+	?IfcPropertySingleValue2 rdf:type ifc:IfcPropertySingleValue ;
+		ifc:name_IfcProperty [ express:hasString "Solar Heat Gain Coefficient" ];
+		ifc:nominalValue_IfcPropertySingleValue [ express:hasDouble ?SolarHeatGainCoefficientValue ] .
+		
+	?IfcPropertySingleValue3 rdf:type ifc:IfcPropertySingleValue ;
+		ifc:name_IfcProperty [ express:hasString "Heat Transfer Coefficient (U)" ];
+		ifc:nominalValue_IfcPropertySingleValue [ express:hasDouble ?HeatTransferCoefficientValue ] .
+	
+	# -------------------------------------------------------------------------------------
+
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcMaterial), "IfcMaterial_" )))) as ?simMemberRefId_simMaterial ) . 
+	
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcMaterial), "IfcMaterial_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .
+}
+
+
+
+
+
+

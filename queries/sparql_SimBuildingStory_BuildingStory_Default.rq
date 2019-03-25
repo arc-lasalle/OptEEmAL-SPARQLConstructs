@@ -1,0 +1,70 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+# last modification: 2017.07.24
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1 
+		rdf:type 										simmodel:SimModel ;
+		simmodel:simBuildingStory_BuildingStory_Default ?IfcBuildingStorey ;
+		.			
+	?IfcBuildingStorey 
+		rdf:type 								simbldg:SimBuildingStory_BuildingStory_Default ;
+		simbldg:bldgStoryInSpatialContainer 	?simBuilding_Building ;
+		simbldg:name 							?name_IfcRoot ;
+		simcore:compositionType        			?ElementType2 ;		
+		simcore:ifcGlobalID 					?IfcGloballyUniqueIdValue ;
+		simcore:isTemplateObject 				"false"^^xsd:boolean ;
+		simcore:longName 						?name_IfcRoot ;
+		simcore:placement              			?IfcLocalPlacement ; 
+		simcore:refId 							?BuildingStoreyRefId ;
+		simcore:simModelSubtype 				"Default"^^xsd:string ;
+		simcore:simModelType 					"BuildingStory"^^xsd:string ;
+		simcore:simUniqueID 					"not defined" ;
+		simcore:sourceModelObjectType 			"IfcBuildingStorey"^^xsd:string ;
+		simcore:sourceModelSchema 				"IFC4"^^xsd:string ;
+		.
+}
+WHERE 
+{
+	# PART 1 General information --------------------------------------------
+	?simBuilding_Building 
+		rdf:type ifc:IfcBuilding ;
+		.
+	?IfcBuildingStorey 
+		rdf:type 										ifc:IfcBuildingStorey ;
+		ifc:globalId_IfcRoot 							[ express:hasString ?IfcGloballyUniqueIdValue ] ;
+		ifc:name_IfcRoot 								[ express:hasString ?name_IfcRoot ] ;
+		ifc:objectPlacement_IfcProduct 					?IfcLocalPlacement ;
+		ifc:compositionType_IfcSpatialStructureElement  ?ElementType ;
+		.	
+	?IfcLocalPlacement
+		rdf:type 								ifc:IfcLocalPlacement ;
+		ifc:relativePlacement_IfcLocalPlacement ?IfcAxis2Placement3D ;
+		.
+		
+	?IfcRelAggregates 
+		ifc:relatedObjects_IfcRelAggregates ?IfcBuildingStorey ;
+		ifc:relatingObject_IfcRelAggregates ?simBuilding_Building ;
+		.	
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcBuildingStorey), "IfcBuildingStorey_" )))) as ?BuildingStoreyRefId ) . 
+
+	bind( STRAFTER( xsd:string(?ElementType), "#" ) as ?ElementType2 )
+	
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcBuildingStorey), "IfcBuildingStorey_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .
+}
+
+
+
+

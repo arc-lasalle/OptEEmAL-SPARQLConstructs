@@ -1,0 +1,80 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+
+# last modification 2018.07.18
+
+
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1 
+		rdf:type 										simmodel:SimModel ;
+		simmodel:simCurtainWall_CurtainWall_Default		?IfcCurtainWall ;
+		.		
+		
+	# PART 2 SimWall ExteriorAboveGrade Instance ----------------------	
+	?IfcCurtainWall 
+		rdf:type 							simbldg:SimCurtainWall_CurtainWall_Default ;
+#		simbldg:materialLayerSet 			?IfcMaterialLayerSet ;
+		simcore:containingSpatialStructure 	?simBuildingStorey ;
+		simcore:ifcGlobalID 				?IfcGloballyUniqueIdValue ;
+		simcore:name 						?name_IfcRootValue ; 			
+		simcore:isTemplateObject 			"false"^^xsd:boolean ;
+		simcore:objectType 					"CurtainWall"^^xsd:string ;  
+		simcore:simModelSubtype 			"Default"^^xsd:string ;		
+		simcore:simModelType 				"CurtainWall"^^xsd:string ;
+		simcore:simUniqueID 				"not defined" ;
+		simcore:sourceModelObjectType 		"IfcCurtainWall"^^xsd:string ;
+		simcore:sourceModelSchema 			"IFC4" ;
+		simcore:tag 						"not defined" ;
+		simcore:refId 						?simCurtainWallRefId ;
+		simbldg:grossSideArea				?area ;
+		simbldg:curtainWallIsExternal		?isExternal;
+		.	
+
+#falta por ver si se agregan las propiedades de membersInCurtainWall, panelsInCurtainWall...		
+}
+WHERE 
+{
+	# PART 1 General information --------------------------------------------
+	?IfcCurtainWall rdf:type ifc:IfcCurtainWall .
+	?simBuildingStorey rdf:type ifc:IfcBuildingStorey .
+	[] 	ifc:relatingStructure_IfcRelContainedInSpatialStructure ?simBuildingStorey ;
+		ifc:relatedElements_IfcRelContainedInSpatialStructure ?IfcCurtainWall ;
+		.
+	?IfcCurtainWall 
+		rdf:type ifc:IfcCurtainWall ;
+		ifc:globalId_IfcRoot [express:hasString ?IfcGloballyUniqueIdValue ] ;
+		ifc:name_IfcRoot [express:hasString ?name_IfcRootValue ] ;
+		.
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcCurtainWall), "IfcCurtainWall_" )))) as ?simCurtainWallRefId ) .
+		
+		
+	[] 	ifc:relatedObjects_IfcRelDefinesByProperties ?IfcCurtainWall;
+		ifc:relatingPropertyDefinition_IfcRelDefinesByProperties [ifc:hasProperties_IfcPropertySet [ 
+					ifc:name_IfcProperty [express:hasString "Area" ]; 
+					ifc:nominalValue_IfcPropertySingleValue [ express:hasDouble ?area ] ]
+				].
+	[] 	ifc:relatedObjects_IfcRelDefinesByProperties ?IfcCurtainWall;
+		ifc:relatingPropertyDefinition_IfcRelDefinesByProperties [ifc:hasProperties_IfcPropertySet [ 
+					ifc:name_IfcProperty [express:hasString "IsExternal" ]; 
+					ifc:nominalValue_IfcPropertySingleValue [ express:hasBoolean ?isExternal ] ]
+				].
+				
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcCurtainWall), "IfcCurtainWall_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .
+}
+
+
+
+

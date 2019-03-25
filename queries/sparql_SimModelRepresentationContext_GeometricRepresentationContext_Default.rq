@@ -1,0 +1,106 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+# last modification: 2017.07.24
+
+CONSTRUCT
+{
+	?SimModel_ID1 
+		rdf:type 																		simmodel:SimModel ;
+		simmodel:simModelRepresentationContext_GeometricRepresentationContext_Default 	?IfcGeometricRepresentationContext_Default ;
+		simmodel:simGeomVector_Vector_Direction 										?IfcDirection ;
+		.		
+	?IfcGeometricRepresentationContext
+        rdf:type                		simbldg:_3DModelRepresentationContexts_List ;
+        list:hasContents  				?IfcGeometricRepresentationContext_Default ;
+		.
+	?IfcGeometricRepresentationContext_Default 
+		rdf:type 						simres:SimModelRepresentationContext_GeometricRepresentationContext_Default ;
+		simcore:isTemplateObject 		"false"^^xsd:boolean ;
+		simcore:simModelType 			"GeometricRepresentationContext"^^xsd:string ;
+		simcore:simModelSubtype 		"Default"^^xsd:string ;
+		simcore:sourceModelSchema 		"IFC4"^^xsd:string ;
+		simcore:sourceModelObjectType 	"IfcGeometricRepresentationContext"^^xsd:string ;
+		simres:contextType 				?context ;
+		simres:worldCoordinateSystem 	?IfcAxis2Placement3D ;
+		simres:trueNorth 				?IfcDirection ;
+		simcore:refId 					?RefId ;
+		simcore:simUniqueID             "not defined" ;
+		simres:coordinateSpaceDimension	?SpaceDimension ;
+		.	
+	?IfcDirection
+		rdf:type 						simgeom:SimGeomVector_Vector_Direction ;
+		simgeom:directionRatios 		?IfcReal_List ;
+		simcore:simModelType 			"Vector"^^xsd:string ;
+		simcore:simModelSubtype 		"Direction"^^xsd:string ;
+		simcore:sourceModelSchema 		"IFC4"^^xsd:string ;
+		simcore:sourceModelObjectType 	"SimGeomVector"^^xsd:string ;
+		simcore:isTemplateObject 		"false"^^xsd:boolean ;
+		simcore:refId 					?simAxisRefId ;
+		simcore:simUniqueID 			"not defined" ;
+		.		
+	# ------------------------------------------------------------------------ << NEW 2
+	?IfcRealNode_List_Next 
+		rdf:type 			simcore:DoubleList ;
+		list:hasContents 	?IfcRealValue ;
+		list:hasNext 		?IfcRealNode_List_Last ;
+		.
+	# ------------------------------------------------------------------------ << NEW
+		
+}
+WHERE 
+{
+	# PART 1 General information --------------------------------------------
+	?IfcGeometricRepresentationContext 
+		rdf:type 														ifc:IfcGeometricRepresentationContext ;
+		ifc:worldCoordinateSystem_IfcGeometricRepresentationContext  	?IfcAxis2Placement3D ;
+        ifc:trueNorth_IfcGeometricRepresentationContext  				?IfcDirection ;
+		ifc:contextType_IfcRepresentationContext 						[ express:hasString ?context ] ;
+		ifc:coordinateSpaceDimension_IfcGeometricRepresentationContext 	[ express:hasInteger ?SpaceDimension ] ;
+		.
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcGeometricRepresentationContext), "IfcGeometricRepresentationContext_" )))) as ?RefId ) . 
+	
+	bind( URI(CONCAT(CONCAT(STRBEFORE( xsd:string(?IfcGeometricRepresentationContext), "IfcGeometricRepresentationContext_" ), "IfcGeometricRepresentationContext_default_"), strafter( xsd:string(?IfcGeometricRepresentationContext), "IfcGeometricRepresentationContext_" ))) as ?IfcGeometricRepresentationContext_Default ) .
+	
+	?IfcDirection 
+		#rdf:type ifc:IfcDirection ;
+		ifc:directionRatios_IfcDirection ?IfcReal_List ;
+		.	
+		
+	# CREATE THE LIST //////////////////////////////////////////////////////////////
+	
+	?IfcReal_List		
+		list:hasNext*						?IfcRealNode_List_Next ;
+		.
+	?IfcRealNode_List_Next								
+		list:hasContents					?IfcReal ;					
+		.
+	OPTIONAL {	
+		?IfcRealNode_List_Next
+			list:hasNext					?IfcRealNode_List_Last ;		
+			.
+	}
+	?IfcReal
+		#rdf:type           				ifc:IfcReal ;
+		express:hasDouble  					?IfcRealValue ;
+		.				
+
+	# ///////////////////////////////////////////////////////////////////////////////	
+		
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcDirection), "IfcDirection_" )))) as ?simAxisRefId ) . 		
+	
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcGeometricRepresentationContext), "IfcGeometricRepresentationContext_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .
+}
+
+
+
+

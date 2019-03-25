@@ -1,0 +1,112 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+
+# last motifcation 2017.07.24
+
+# Classes:
+#	simbldg:SimWall_Wall
+#		simbldg:SimWall_Wall_Adiabatic
+#		simbldg:SimWall_Wall_Default <------------------------
+#		simbldg:SimWall_Wall_ExteriorAboveGrade 
+#		simbldg:SimWall_Wall_ExteriorAboveGradeDetailed
+#		simbldg:SimWall_Wall_ExteriorAboveGradeStandard
+#		simbldg:SimWall_Wall_ExteriorBelowGrade
+#		simbldg:SimWall_Wall_ExteriorBelowGradeDetailed
+#		simbldg:SimWall_Wall_ExteriorBelowGradeStandard
+#		simbldg:SimWall_Wall_Interior 
+#		simbldg:SimWall_Wall_InteriorDetailed
+#		simbldg:SimWall_Wall_InteriorStandard
+#		simbldg:SimWall_Wall_OpeningFiller
+#
+# Properties:
+#   simmodel:simWall_Wall_Adiabatic
+#   simmodel:simWall_Wall_Default
+#   simmodel:simWall_Wall_ExteriorAboveGrade
+#   simmodel:simWall_Wall_ExteriorAboveGradeDetailed
+#   simmodel:simWall_Wall_ExteriorAboveGradeStandard
+#   simmodel:simWall_Wall_ExteriorBelowGrade
+#   simmodel:simWall_Wall_ExteriorBelowGradeDetailed
+#   simmodel:simWall_Wall_ExteriorBelowGradeStandard
+#   simmodel:simWall_Wall_Interior
+#   simmodel:simWall_Wall_InteriorDetailed
+#   simmodel:simWall_Wall_InteriorStandard
+#
+# important --> SimWall_TypicalWall_... base name is deprecated
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1 
+		rdf:type 						simmodel:SimModel ;
+		simmodel:simWall_Wall_Default 	?IfcWallStandardCase ;
+		.		
+	# PART 2 SimWall ExteriorAboveGrade Instance ----------------------	
+	?IfcWallStandardCase 
+		rdf:type 								simbldg:SimWall_Wall_Default ;
+		simbldg:materialLayerSet 				?IfcMaterialLayerSet ;
+		simcore:containingSpatialStructure 		?simBuildingStorey ;
+		simcore:ifcGlobalID 					?IfcGloballyUniqueIdValue ;
+		simcore:isTemplateObject 				"false"^^xsd:boolean ;
+		simcore:name 							?name_IfcRootValue ; 	# to improve
+		simcore:objectType 						"Wall"^^xsd:string ;  	# to improve
+		simcore:refId 							?simWallRefId ;		
+		simcore:simModelSubtype 				"Default"^^xsd:string ;		
+		simcore:simModelType 					"Wall"^^xsd:string ;
+		simcore:simUniqueID 					"not defined" ;
+		simcore:sourceModelObjectType 			"IfcWall"^^xsd:string ;
+		simcore:sourceModelSchema 				"IFC4" ;
+		simcore:tag 							"not defined" ;
+		#simcore:wallGrossSideArea				?area;					# not included
+		.		
+}
+WHERE 
+{
+	# PART 1 General information --------------------------------------------
+	?IfcWallStandardCase rdf:type ifc:IfcWallStandardCase .
+	?simBuildingStorey rdf:type ifc:IfcBuildingStorey .
+	?IfcRelContainedInSpatialStructure 
+		rdf:type ifc:IfcRelContainedInSpatialStructure ;
+		ifc:relatingStructure_IfcRelContainedInSpatialStructure ?simBuildingStorey ;
+		ifc:relatedElements_IfcRelContainedInSpatialStructure ?IfcWallStandardCase ;
+		.
+	?IfcWallStandardCase 
+		rdf:type ifc:IfcWallStandardCase ;
+		ifc:globalId_IfcRoot [express:hasString ?IfcGloballyUniqueIdValue ] ;
+		ifc:name_IfcRoot [express:hasString ?name_IfcRootValue ] ;
+		.
+	#bind( strafter( xsd:string(?IfcWallStandardCase), "IfcWallStandardCase_" ) as ?simWallRefId ).
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcWallStandardCase), "IfcWallStandardCase_" )))) as ?simWallRefId ) .
+	
+	# Connection to material Layer set:
+	?IfcRelAssociatesMaterial rdf:type  ifc:IfcRelAssociatesMaterial ;
+		ifc:relatedObjects_IfcRelAssociates ?IfcWallStandardCase ;
+		ifc:relatingMaterial_IfcRelAssociatesMaterial ?IfcMaterialLayerSetUsage ;
+		.
+	?IfcMaterialLayerSetUsage  rdf:type  ifc:IfcMaterialLayerSetUsage ;
+		ifc:forLayerSet_IfcMaterialLayerSetUsage  ?IfcMaterialLayerSet ;
+		.
+	
+	?IfcRel ifc:relatedObjects_IfcRelDefinesByProperties ?IfcWallStandardCase;
+		ifc:relatingPropertyDefinition_IfcRelDefinesByProperties ?IfcPropertySet .
+	
+	?IfcPropertySet ifc:hasProperties_IfcPropertySet ?IfcPropertySingleValue .
+	?IfcPropertySingleValue rdf:type ifc:IfcPropertySingleValue ;
+		ifc:name_IfcProperty [express:hasString "Area" ]; # the standardized name provided in the IFC 4 documentation is --> 
+		ifc:nominalValue_IfcPropertySingleValue [ express:hasDouble ?area ] .
+		
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcWallStandardCase), "IfcWallStandardCase_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .
+}
+
+
+
+

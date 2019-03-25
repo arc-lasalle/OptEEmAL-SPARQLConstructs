@@ -1,0 +1,113 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX list: <https://w3id.org/list#>
+PREFIX express: <https://w3id.org/express#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+# Last modification: 2017.09.09
+
+# Description
+# Transform an "IfcMaterial" into "SimMaterialLayer_OpaqueMaterialLayer_Default" through "IfcMaterialProperties"
+
+# Relation with other queries:
+# - sparql_simMaterialLayer.rq
+# - sparql_simMaterial_Glazing.rq
+# - sparql_simMaterial_Glazing_viaPSet
+
+# comments: 
+# - Since the type of layer for glazing or opaque materials is not defined in the IFC, we have to include all the pattern together.
+
+# SimMaterial_OpaqueMaterial
+#	SimMaterial_OpaqueMaterial_AirGap
+#	SimMaterial_OpaqueMaterial_Composite
+#	SimMaterial_OpaqueMaterial_Default <--------------------------
+#	SimMaterial_OpaqueMaterial_InfraredTransparent
+#	SimMaterial_OpaqueMaterial_Insulation
+#	SimMaterial_OpaqueMaterial_InsulationMovable
+#	SimMaterial_OpaqueMaterial_NoMass
+#	SimMaterial_OpaqueMaterial_Vegetation
+
+# SimMaterialLayer
+#	SimMaterialLayer_EquivGlazingLayer
+#		SimMaterialLayer_EquivGlazingLayer_Default
+#	SimMaterialLayer_GlazingMaterialLayer
+#		SimMaterialLayer_GlazingMaterialLayer_Default
+#		SimMaterialLayer_GlazingMaterialLayer_Thermochromic
+#	SimMaterialLayer_OpaqueMaterialLayer
+#		SimMaterialLayer_OpaqueMaterialLayer_Default
+#	SimMaterialLayer_VirtualBoundaryLayer
+#		SimMaterialLayer_VirtualBoundaryLayer_Default
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1 
+		rdf:type 												simmodel:SimModel ;
+		simmodel:simMaterialLayer_OpaqueMaterialLayer_Default 	?IfcMaterialLayer ;
+		simmodel:simMaterial_OpaqueMaterial_NoMass 				?IfcMaterial ;
+		.
+	?IfcMaterialLayer 
+		rdf:type 							simres:SimMaterialLayer_OpaqueMaterialLayer_Default ;
+		simcore:sourceModelSchema 			"IFC4"^^xsd:string ;		
+		simres:simMatLayer_MaterialName 	?MaterialLayerName1 ;
+		simres:layerMaterial 				?IfcMaterial ;
+		simcore:sourceModelObjectType 		"IfcMaterialLayer"^^xsd:string ;
+		simcore:simModelType 				"OpaqueMaterialLayer"^^xsd:string ;
+		simcore:simModelSubtype 			"Default"^^xsd:string ;		
+		simcore:simUniqueID 				"not defined" ;		
+		simcore:isTemplateObject 			"false"^^xsd:boolean ;
+		simcore:refId 						?simMaterialLayerRefId ;
+		.
+	?IfcMaterial
+		rdf:type 							simres:SimMaterial_OpaqueMaterial_NoMass ;	
+		simcore:isTemplateObject 			"false"^^xsd:boolean  ;
+		simcore:simModelType 				"OpaqueMaterial"^^xsd:string  ;
+		simcore:simModelSubtype 			"NoMass"^^xsd:string  ;
+		simcore:sourceModelSchema 			"IFC4"^^xsd:string  ;
+		simcore:simUniqueID 				"not defined"^^xsd:string  ;
+		# Opaque material properties -----------------------------------
+		simres:simMaterial_ThermalResist 	?IfcThermalResist;
+		simcore:refId 						?simMemberRefId_simMaterial .		
+}
+WHERE
+{
+	?IfcMaterial 
+		rdf:type ifc:IfcMaterial ;
+		ifc:name_IfcMaterial  ?IfcMaterialNameLabel1 ;
+		.
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcMaterial), "IfcMaterial_" )))) as ?simMemberRefId_simMaterial ) . 
+	
+	OPTIONAL { 
+		#This only affects NoMass materials of plates
+		?IfcMaterialLayer 
+			rdf:type 						ifc:IfcMaterialLayer ;
+			ifc:material_IfcMaterialLayer 	?IfcMaterial ;
+			.
+		bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcMaterialLayer), "IfcMaterialLayer_" )))) as ?simMaterialLayerRefId ) . 
+	}
+	
+	?IfcMaterialNameLabel1 
+		rdf:type  			ifc:IfcLabel ;
+		express:hasString  	?MaterialLayerName1 ;
+		.		
+	?IfcMaterialProperties
+		ifc:material_IfcMaterialProperties 		?IfcMaterial ;
+		ifc:properties_IfcExtendedProperties 	?IfcPropertySingleValue1 ;
+		.
+	
+	# 1. Thermal Resistance -------------------------------------------------------------
+	?IfcPropertySingleValue1 rdf:type ifc:IfcPropertySingleValue ;
+		ifc:name_IfcProperty 					[ express:hasString "Thermal Resistance (R)" ] ;
+		ifc:nominalValue_IfcPropertySingleValue [ express:hasDouble ?IfcThermalResist ] ;
+		.	
+
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcMaterial), "IfcMaterial_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .
+}

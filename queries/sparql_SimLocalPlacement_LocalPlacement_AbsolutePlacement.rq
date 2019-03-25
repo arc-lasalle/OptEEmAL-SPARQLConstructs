@@ -1,0 +1,184 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1 
+		rdf:type 													simmodel:SimModel ;
+		simmodel:simLocalPlacement_LocalPlacement_AbsolutePlacement ?IfcLocalPlacement ;
+		simmodel:simPlacement_Axis2Placement3D_Default 				?IfcAxis2Placement3D ;
+		simmodel:simGeomPoint_Point_CartesianPoint					?IfcCartesianPoint ;
+		.			
+	?IfcLocalPlacement 
+		rdf:type 						simgeom:SimLocalPlacement_LocalPlacement_AbsolutePlacement ;
+		simgeom:relativePlacement 		?IfcAxis2Placement3D ;
+		simcore:simModelType 			"LocalPlacement"^^xsd:string ;
+		simcore:simModelSubtype 		"AbsolutePlacement"^^xsd:string ;
+		simcore:isTemplateObject 		"false"^^xsd:boolean ;
+		simcore:simUniqueID             "not defined" ;
+		simcore:sourceModelObjectType  	"IfcLocalPlacement" ;
+        simcore:sourceModelSchema 		"IFC4" ;
+		simcore:refId 					?simPlacementRefId ;
+		.
+		
+	# NEW >> ------------------------------------------------------------------------
+	# Postion -----------------------------------------------------------------------
+	?IfcAxis2Placement3D 
+		rdf:type 						simgeom:SimPlacement_Axis2Placement3D_Default ;
+		simgeom:axis                   	?IfcDirectionAxis ;
+		simgeom:refDirection           	?IfcDirection ;
+		simgeom:location               	?IfcCartesianPoint ;
+		simcore:isTemplateObject 		"false"^^xsd:boolean ;
+		simcore:simModelSubtype        	"Default"^^xsd:string ;
+		simcore:simModelType 		   	"Axis2Placement3D"^^xsd:string ;
+		simcore:simUniqueID            	"not defined" ;
+		simcore:sourceModelObjectType  	"IfcAxis2Placement3D" ;
+		simcore:sourceModelSchema      	"IFC4" ;
+		simcore:refId 					?IfcAxis2Placement3D_RefId ;
+		.	
+	?IfcDirection
+		rdf:type 						simgeom:SimGeomVector_Vector_Direction ;
+		simgeom:directionRatios 		?IfcReal_List ;
+		simcore:simModelType 			"Vector"^^xsd:string ;
+		simcore:simModelSubtype 		"Direction"^^xsd:string ;
+		simcore:sourceModelSchema 		"IFC4"^^xsd:string ;
+		simcore:sourceModelObjectType 	"SimGeomVector"^^xsd:string ;
+		simcore:isTemplateObject 		"false"^^xsd:boolean ;
+		simcore:refId 					?simAxisRefId ;
+		simcore:simUniqueID 			"not defined" ;
+		.
+	# ------------------------------------------------------------------------ << NEW 2
+	?IfcRealNode_List_Next 
+		rdf:type 			simcore:DoubleList ;
+		list:hasContents 	?IfcRealValue ;
+		list:hasNext 		?IfcRealNode_List_Last ;
+		.
+	# ------------------------------------------------------------------------ << NEW	
+		
+		
+	?IfcCartesianPoint 
+		rdf:type 							simgeom:SimGeomPoint_Point_CartesianPoint ;
+		simcore:simModelType 				"Point"^^xsd:string ;
+		simcore:simModelSubtype 			"CartesianPoint"^^xsd:string ;
+		simcore:isTemplateObject 			"false"^^xsd:boolean ;
+		simcore:sourceModelObjectType 		"IfcCartesianPoint" ;
+		simcore:sourceModelSchema 			"IFC4" ;
+		simcore:simUniqueID 				"not defined" ;
+		simgeom:coordinates_MeasureValue 	?IfcLengthMeasureNode_List ;		
+		simcore:refId 						?SimGeomPoint_Point_CartesianPoint_RefId ;
+		.	
+	# ------------------------------------------------------------------------ << NEW 2	
+	?IfcLengthMeasureNode_List_Next 
+		rdf:type 			simcore:DoubleList ;
+		list:hasContents 	?IfcLengthMeasureValue ;
+		list:hasNext 		?IfcLengthMeasureNode_List_Last ;
+		#rdf:TEST_LocalPlacement_TEST		simcore:TEST_LocalPlacement_TEST ;
+		.	
+	# ------------------------------------------------------------------------ << NEW
+}
+WHERE 
+{
+	# PART 1 General information --------------------------------------------
+
+	?IfcLocalPlacement
+		rdf:type 								ifc:IfcLocalPlacement ;
+		ifc:relativePlacement_IfcLocalPlacement ?IfcAxis2Placement3D ;
+		.	
+	FILTER NOT EXISTS {	?IfcLocalPlacement ifc:placementRelTo_IfcLocalPlacement ?placementRelTo}
+	
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcLocalPlacement), "IfcLocalPlacement_" )))) as ?simPlacementRefId ) . 
+	
+	# NEW >> ------------------------------------------------------------------------
+	# from old file "sparql_SimPlacement_Axis2Placement3D_Default.rq" ---------------
+
+	?IfcAxis2Placement3D 
+		rdf:type 								ifc:IfcAxis2Placement3D ;
+		.
+	
+	OPTIONAL { 
+		?IfcAxis2Placement3D 	
+			ifc:location_IfcPlacement 			?IfcCartesianPoint ;
+			. 
+		?IfcCartesianPoint
+			#rdf:type 							ifc:IfcCartesianPoint ;
+			ifc:coordinates_IfcCartesianPoint 	?IfcLengthMeasureNode_List ;
+			.
+			
+		# CREATE THE LIST //////////////////////////////////////////////////////////////
+		
+		?IfcLengthMeasureNode_List		
+			list:hasNext*						?IfcLengthMeasureNode_List_Next ;
+			.
+		?IfcLengthMeasureNode_List_Next								
+			list:hasContents					?IfcLengthMeasure ;					
+			.
+		OPTIONAL {	
+			?IfcLengthMeasureNode_List_Next
+				list:hasNext					?IfcLengthMeasureNode_List_Last ;		
+				.
+		}
+		?IfcLengthMeasure
+			#rdf:type           				ifc:IfcLengthMeasure ;
+			express:hasDouble  					?IfcLengthMeasureValue ;
+			.				
+	
+		# ///////////////////////////////////////////////////////////////////////////////	
+			
+		bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcCartesianPoint), "IfcCartesianPoint_" )))) as ?SimGeomPoint_Point_CartesianPoint_RefId ) . 
+	}
+	OPTIONAL { 
+		?IfcAxis2Placement3D   	
+			ifc:refDirection_IfcAxis2Placement3D  	?IfcDirection ;
+			. 
+		?IfcDirection 
+			#rdf:type 								ifc:IfcDirection ;
+			ifc:directionRatios_IfcDirection 		?IfcReal_List ;
+			.		
+			
+		# CREATE THE LIST //////////////////////////////////////////////////////////////
+	
+		?IfcReal_List		
+			list:hasNext*						?IfcRealNode_List_Next ;
+			.
+		?IfcRealNode_List_Next								
+			list:hasContents					?IfcReal ;					
+			.
+		OPTIONAL {	
+			?IfcRealNode_List_Next
+				list:hasNext					?IfcRealNode_List_Last ;		
+				.
+		}
+		?IfcReal
+			#rdf:type           				ifc:IfcReal ;
+			express:hasDouble  					?IfcRealValue ;
+			.				
+
+		# ///////////////////////////////////////////////////////////////////////////////		
+			
+		bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcDirection), "IfcDirection_" )))) as ?simAxisRefId ) . 
+	}
+	OPTIONAL { 
+		?IfcAxis2Placement3D 	
+			ifc:axis_IfcAxis2Placement3D 			?IfcDirectionAxis ;
+			. 
+	}
+		
+	# SimPlacement_Axis2Placement3D_Default RefID:
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcAxis2Placement3D), "IfcAxis2Placement3D_" )))) as ?IfcAxis2Placement3D_RefId ) . 
+	
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcLocalPlacement), "IfcLocalPlacement_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .
+}
+
+
+
+

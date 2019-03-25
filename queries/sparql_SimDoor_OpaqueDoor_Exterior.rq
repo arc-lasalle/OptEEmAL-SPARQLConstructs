@@ -1,0 +1,133 @@
+# IMPORTANT: use "ifc" always as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX list: <https://w3id.org/list#>
+PREFIX express: <https://w3id.org/express#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+# last modification: 2017.11.17
+
+# Description
+# Transform an "IfcDoor" into "SimDoor_OpaqueDoor" 
+
+# Relation with other queries:
+# - 
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1 
+		rdf:type 									simmodel:SimModel ;
+		simmodel:simDoor_OpaqueDoor_Exterior		?IfcDoor ;
+		.		
+	?IfcDoor 
+		rdf:type 							simbldg:SimDoor_OpaqueDoor_Exterior ;
+		simcore:ifcGlobalID 				?IfcGloballyUniqueIdValue ;
+		simcore:simModelSubtype        		"Exterior" ;
+		simcore:simModelType 				"OpaqueDoor"^^xsd:string ;
+		simcore:sourceModelSchema 			"IFC4"^^xsd:string ;
+		simcore:sourceModelObjectType 		"IfcDoor"^^xsd:string ;
+		simcore:isTemplateObject 			"false"^^xsd:boolean ;
+		simcore:name 						?name_IfcRoot ;
+		simcore:objectType 					?ObjectType ;
+		simcore:tag 						?tag ;
+		simbldg:materialList 				?IfcMaterialConstituentSet ;
+		simcore:containingSpatialStructure	?IfcBuildingStorey ;
+		simcore:refId 						?RefIdDoor ;
+		simcore:simUniqueID             	"not defined" ;
+		.	
+}
+WHERE
+{
+	?IfcDoor 
+		rdf:type 				ifc:IfcDoor ;
+		ifc:globalId_IfcRoot 	[ express:hasString ?IfcGloballyUniqueIdValue ] ;
+		ifc:name_IfcRoot 		[ express:hasString ?name_IfcRoot ] ;
+		ifc:tag_IfcElement 		[ express:hasString ?tag ] ;
+		.		
+	OPTIONAL {	
+		#Not all doors are related to a container element
+		?IfcRelContainedInSpatialStructure
+			rdf:type  												ifc:IfcRelContainedInSpatialStructure ;
+			ifc:relatingStructure_IfcRelContainedInSpatialStructure ?IfcBuildingStorey ;
+			ifc:relatedElements_IfcRelContainedInSpatialStructure 	?IfcDoor ;
+			.
+	}
+	
+		
+	#### to get the object type	
+	OPTIONAL {
+	
+		?IfcRelDefinesByProperties
+			ifc:relatedObjects_IfcRelDefinesByProperties  				?IfcDoor ;
+			ifc:relatingPropertyDefinition_IfcRelDefinesByProperties  	?IfcPropertySet ;
+			.
+		?IfcPropertySet 	
+			ifc:hasProperties_IfcPropertySet ?IfcPropertySingleValue ;
+			.
+		
+		?IfcPropertySingleValue
+			ifc:name_IfcProperty 					[ express:hasString "Reference" ] ;
+			ifc:nominalValue_IfcPropertySingleValue [ express:hasString ?ObjectType ] ;
+			.
+	}
+	OPTIONAL {
+       ?IfcRelDefinesByType
+			ifc:relatedObjects_IfcRelDefinesByType  ?IfcDoor ;
+			ifc:relatingType_IfcRelDefinesByType    ?IfcDoorType ;
+			.
+       ?IfcDoorType
+			ifc:hasPropertySets_IfcTypeObject		?IfcPropertySingleValue3 ;
+			.
+		?IfcPropertySingleValue3
+			ifc:name_IfcProperty 					[ express:hasString "Reference" ] ;
+			ifc:nominalValue_IfcPropertySingleValue [ express:hasString ?ObjectType ] ;
+			.
+	}
+	####
+	
+	#### internal only
+	?IfcRelSpaceBoundary2ndLevel
+		rdf:type                        						ifc:IfcRelSpaceBoundary2ndLevel ;
+		ifc:internalOrExternalBoundary_IfcRelSpaceBoundary      ifc:EXTERNAL ;
+		ifc:relatedBuildingElement_IfcRelSpaceBoundary          ?IfcDoor ;
+		.
+	####	
+	
+	#### to identify glass material	
+	?IfcRelAssociatesMaterial
+		ifc:relatedObjects_IfcRelAssociates 			?IfcDoor ;
+		ifc:relatingMaterial_IfcRelAssociatesMaterial  	?IfcMaterialConstituentSet ;
+		.
+	FILTER NOT EXISTS {			
+		?IfcMaterialConstituentSet 
+			ifc:materialConstituents_IfcMaterialConstituentSet ?IfcMaterialConstituent ;
+			.		
+		?IfcMaterialConstituent 
+			rdf:type  								ifc:IfcMaterialConstituent ;
+			ifc:material_IfcMaterialConstituent  	?IfcMaterialGlass ;
+			.
+		?IfcMaterialGlass 
+			ifc:category_IfcMaterial 	[ express:hasString ?MatCat ] ;
+			.
+		# we relate the type of door if it has glass or not
+		FILTER (regex(?MatCat, "Glass", "i") )
+	}
+		
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcDoor), "IfcDoor_" )))) as ?RefIdDoor ) . 
+	
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcDoor), "IfcDoor_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .
+}
+
+
+
+
+
+

@@ -1,0 +1,176 @@
+# IMPORTANT: use "ifc" allways as a prefix name for all of IFC instances and do not add any prefix URI for them.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX list: <https://w3id.org/list#>
+PREFIX express: <https://w3id.org/express#>
+PREFIX simcore: <http://www.opteemal.eu/schema/2017/01/SimModelCore#>
+PREFIX simres: <http://www.opteemal.eu/schema/2017/01/ResourcesGeneral#>
+PREFIX simgeom: <http://www.opteemal.eu/schema/2017/01/ResourcesGeometry#>
+PREFIX simbldg: <http://www.opteemal.eu/schema/2017/01/BuildingModel#>
+PREFIX simmep: <http://www.opteemal.eu/schema/2017/01/MepModel#>
+PREFIX simmodel: <http://www.opteemal.eu/schema/2017/01/Model#>
+
+# Last modification: 2017.09.09
+
+# Description
+# Transform an "IfcMaterial" into "SimMaterialLayer_OpaqueMaterialLayer_Default" through "IfcMaterialProperties"
+
+# Relation with other queries:
+# - sparql_simMaterialLayer.rq
+# - sparql_simMaterial_Glazing.rq
+# - sparql_simMaterial_Glazing_viaPSet
+
+# comments: 
+# - Since the type of layer for glazing or opaque materials is not defined in the IFC, we have to include all the pattern together.
+
+# SimMaterial_OpaqueMaterial
+#	SimMaterial_OpaqueMaterial_AirGap
+#	SimMaterial_OpaqueMaterial_Composite
+#	SimMaterial_OpaqueMaterial_Default <--------------------------
+#	SimMaterial_OpaqueMaterial_InfraredTransparent
+#	SimMaterial_OpaqueMaterial_Insulation
+#	SimMaterial_OpaqueMaterial_InsulationMovable
+#	SimMaterial_OpaqueMaterial_NoMass
+#	SimMaterial_OpaqueMaterial_Vegetation
+
+# SimMaterialLayer
+#	SimMaterialLayer_EquivGlazingLayer
+#		SimMaterialLayer_EquivGlazingLayer_Default
+#	SimMaterialLayer_GlazingMaterialLayer
+#		SimMaterialLayer_GlazingMaterialLayer_Default
+#		SimMaterialLayer_GlazingMaterialLayer_Thermochromic
+#	SimMaterialLayer_OpaqueMaterialLayer
+#		SimMaterialLayer_OpaqueMaterialLayer_Default
+#	SimMaterialLayer_VirtualBoundaryLayer
+#		SimMaterialLayer_VirtualBoundaryLayer_Default
+
+CONSTRUCT
+{
+	# PART 1 SimModel instance --------------------------------------------
+	?SimModel_ID1 
+		rdf:type 												simmodel:SimModel ;
+		simmodel:simMaterialLayer_OpaqueMaterialLayer_Default 	?IfcMaterialLayer ;
+		simmodel:simMaterial_OpaqueMaterial_AirGap 				?IfcMaterial ;
+		.
+	?IfcMaterialLayer 
+		rdf:type 							simres:SimMaterialLayer_OpaqueMaterialLayer_Default ;
+		simres:layerMaterial 				?IfcMaterial ;
+		simres:layerThickness          		?IfcNonNegativeLengthValue ;			# not in the TUC file depending on the case		
+		simcore:isTemplateObject 			"false"^^xsd:boolean ;
+		simcore:refId 						?simMaterialLayerRefId ;
+		simcore:simModelSubtype 			"Default"^^xsd:string ;		
+		simcore:simModelType 				"OpaqueMaterialLayer"^^xsd:string ;
+		simcore:simUniqueID 				"not defined"^^xsd:string ;				# not in the TUC file depending on the case
+		simcore:sourceModelObjectType 		"IfcMaterialLayer"^^xsd:string ;
+		simcore:sourceModelSchema 			"IFC4"^^xsd:string ;		
+		.
+	?IfcMaterial
+		rdf:type 							simres:SimMaterial_OpaqueMaterial_AirGap ;
+		simres:category                		?IfcMatCatName ;	# "Gas"
+		simres:name                    		?IfcMatName ;		# "Air" 
+		simcore:isTemplateObject 			"false"^^xsd:boolean  ;
+		simcore:refId 						?simMemberRefId_simMaterial ;
+		# Opaque material properties -----------------------------------
+		simres:simMaterial_Cond 			?ThermalConductivityValue ;
+		simres:simMaterial_SpecificHeat 	?SpecificHeatCapacityValue ;
+		simres:simMaterial_Density 			?MassDensityValue ;
+		simres:simMaterial_ThermalResist 	?IfcThermalResist ;
+		#---------------------------------------------------------------
+		simcore:simModelSubtype 			"AirGap"^^xsd:string ;
+		simcore:simModelType 				"OpaqueMaterial"^^xsd:string ;
+		simcore:simUniqueID 				"not defined"^^xsd:string ;
+		simcore:sourceModelSchema 			"IFC4"^^xsd:string ;
+		.		
+}
+WHERE
+{
+	?IfcMaterial 
+		rdf:type 					ifc:IfcMaterial ;
+		ifc:category_IfcMaterial  	[ express:hasString ?IfcMatCatName ] ;
+		ifc:name_IfcMaterial  		[ express:hasString ?IfcMatName ] ;
+		.
+	FILTER (regex(?IfcMatCatName, "Gas", "i") || 
+			regex(?IfcMatCatName, "gas", "i" )).		
+	
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcMaterial), "IfcMaterial_" )))) as ?simMemberRefId_simMaterial ) . 
+	
+	?IfcMaterialLayer 
+		rdf:type 							ifc:IfcMaterialLayer ;
+		ifc:material_IfcMaterialLayer 		?IfcMaterial ;
+		ifc:layerThickness_IfcMaterialLayer	[ express:hasDouble ?IfcNonNegativeLengthValue ] ;
+		.
+	bind( (xsd:ID(CONCAT("ID", strafter( xsd:string(?IfcMaterialLayer), "IfcMaterialLayer_" )))) as ?simMaterialLayerRefId ) . 
+			
+	?IfcMaterialProperties
+		rdf:type 								ifc:IfcMaterialProperties ;
+		ifc:material_IfcMaterialProperties 		?IfcMaterial ;
+		ifc:properties_IfcExtendedProperties 	?IfcPropertySingleValue1 ;
+		ifc:properties_IfcExtendedProperties 	?IfcPropertySingleValue2 ;
+		ifc:properties_IfcExtendedProperties 	?IfcPropertySingleValue3 ;		
+		ifc:properties_IfcExtendedProperties 	?IfcPropertySingleValue4 ;	
+		.	
+	# 1. ThermalConductivity -------------------------------------------------------------
+	?IfcPropertySingleValue1 
+		rdf:type 								ifc:IfcPropertySingleValue ;
+		ifc:name_IfcProperty 					[ express:hasString "ThermalConductivity" ] ;
+		ifc:nominalValue_IfcPropertySingleValue [ express:hasDouble ?ThermalConductivityValue ] ;
+		.
+	# 2. SpecificHeatCapacity ------------------------------------------------------------
+	?IfcPropertySingleValue2 
+		rdf:type 								ifc:IfcPropertySingleValue ;
+		ifc:name_IfcProperty 					[ express:hasString "SpecificHeatCapacity" ] ;
+		ifc:nominalValue_IfcPropertySingleValue [ express:hasDouble ?SpecificHeatCapacityValue ] ;
+		.	
+	# 3. MassDensity ---------------------------------------------------------------------
+	?IfcPropertySingleValue3 
+		rdf:type 								ifc:IfcPropertySingleValue ;
+		ifc:name_IfcProperty 					[ express:hasString "MassDensity" ] ;
+		ifc:nominalValue_IfcPropertySingleValue [ express:hasDouble ?MassDensityValue ] ;
+		.
+	# 1. Thermal Resistance -------------------------------------------------------------
+	
+	{
+		SELECT (xsd:double(?Thickness2)/xsd:double(?ThermalConductivityValue2) AS ?IfcThermalResistUnformat)
+		WHERE
+		{
+			?IfcMaterial 
+				rdf:type 					ifc:IfcMaterial ;
+				ifc:category_IfcMaterial  	[ express:hasString ?IfcMatCatName ] ;
+				ifc:name_IfcMaterial  		[ express:hasString ?IfcMatName ] ;
+				.
+			FILTER (regex(?IfcMatCatName, "Gas", "i") || 
+					regex(?IfcMatCatName, "gas", "i" )).		
+				
+			bind( strafter( xsd:string(?IfcMaterial), "IfcMaterial_" ) as ?simMemberRefId_simMaterial ) .		
+			
+			?IfcMaterialLayer 
+				rdf:type 							ifc:IfcMaterialLayer ;
+				ifc:material_IfcMaterialLayer 		?IfcMaterial ;
+				ifc:layerThickness_IfcMaterialLayer	[ express:hasDouble ?Thickness2 ] ;
+				.
+			bind( strafter( xsd:string(?IfcMaterialLayer), "IfcMaterialLayer_" ) as ?simMaterialLayerRefId ) .
+					
+			?IfcMaterialProperties
+				rdf:type 								ifc:IfcMaterialProperties ;
+				ifc:material_IfcMaterialProperties 		?IfcMaterial ;
+				ifc:properties_IfcExtendedProperties 	?IfcPropertySingleValue1 ;
+				ifc:properties_IfcExtendedProperties 	?IfcPropertySingleValue2 ;
+				ifc:properties_IfcExtendedProperties 	?IfcPropertySingleValue3 ;		
+				ifc:properties_IfcExtendedProperties 	?IfcPropertySingleValue4 ;	
+				.	
+			# 1. ThermalConductivity -------------------------------------------------------------
+			?IfcPropertySingleValue1 
+				rdf:type 								ifc:IfcPropertySingleValue ;
+				ifc:name_IfcProperty 					[ express:hasString "ThermalConductivity" ] ;
+				ifc:nominalValue_IfcPropertySingleValue [ express:hasDouble ?ThermalConductivityValue2 ] ;
+				.
+		}
+	}
+	BIND (xsd:double(?IfcThermalResistUnformat) as ?IfcThermalResist).
+	
+	# -----------------------------------------------------------------------------------	
+		
+	# ID of SimModel_ID1 (get the instance base URI + SimModel_ID1)
+	bind( URI(CONCAT(STRBEFORE( xsd:string(?IfcMaterial), "IfcMaterial_" ), "SimModel_ID1")) as ?SimModel_ID1 ) .
+}
