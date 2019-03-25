@@ -18,5 +18,8 @@ The following articles refer to the context in which the development of the SPAR
 
 - Costa, G., & Sicilia, Á. (2017, November). Methodology for data integration using SPARQL Constructs in the AEC industry. In Proceedings of the 5th Linked Data in Architecture and Construction Workshop (LDAC2017), Dijon, France (pp. 13-15). https://www.researchgate.net/publication/320870777_Methodology_for_data_integration_using_SPARQL_Constructs_in_the_AEC_industry
 
-## Errors - contact
+## Acknowledgements
+Part of this work has been conducted within the project "Optimised Energy Efficient Design Platform for Refurbishment at District Level", which has received funding from the European Union Horizon 2020 Framework Pro-gramme (H2020/2014-2020) under grant agreement n° 680676.
+
+## Issues - contact
 You can report any errors that you found to the authors: goncal.costa@salle.url.edu, alvaro.sicilia@salle.url.edu.
