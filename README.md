@@ -1,6 +1,6 @@
 # OptEEmAL-SPARQLConstructs
 ## Introduction
-This repository includes a set of SPARQL queries that enable to transform the data of BIM models in the IFC format (STEP) to the SimModel specification in RDF format.
+This repository includes a set of SPARQL queries that enable to transform the data of BIM models in the IFC4 STEP format to the SimModel specification in RDF format.
 
 ## Usage
 You can implement a routine to process SPARQL queries using some of the existing libraries (Jena, DotNetRDF, etc.) depending on the programming language you prefer (Java, C #, etc.).
