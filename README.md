@@ -10,6 +10,7 @@ You can implement a routine to process SPARQL queries using some of the existing
 
 ## Test files
 This repository contains some test files used to check the result of the data transformations carried out through the SPARQL Construct queries. You can find these files in the 'tests' folder. Note that these are tests performed with BIM models exported to IFC following the OptEEmAL guide. You can check the guide using the following link:
+[BIM Guidelines](https://www.opteemal-project.eu/files/guidelines_for_opteemal_bim_input_files_v11.pdf)
 
 ## Publications
 The following articles refer to the context in which the development of the SPARQL queries has been carried out:
